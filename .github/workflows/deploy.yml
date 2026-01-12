@@ -148,10 +148,9 @@ jobs:
       - name: Notify deployment status
         if: always()
         run: |
-          if [ ${{ job.status }} == 'success' ]; then
+          if [ "${{ job.status }}" = "success" ]; then
             echo "✅ Deploy realizado com sucesso!"
             echo "🌐 API disponível em: https://api-aponta.pedroct.com.br"
           else
-            echo "❌ Deploy falhou!"
-            exit 1
+            echo "❌ Deploy falhou! Verifique os logs acima."
           fi
