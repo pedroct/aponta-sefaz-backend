@@ -44,7 +44,7 @@ print(f"🚀 API Aponta inicializada - Schema: {settings.database_schema}")
 # Configurar CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Em produção, especificar origens permitidas
+    allow_origins=settings.cors_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -64,6 +64,7 @@ app.include_router(projetos.router)
     summary="Health Check",
     description="Verifica se a API está funcionando.",
 )
+@app.get("/health", tags=["Health"], include_in_schema=False)
 @app.get("/healthz", tags=["Health"], include_in_schema=False)
 def health_check():
     """Endpoint de health check."""
