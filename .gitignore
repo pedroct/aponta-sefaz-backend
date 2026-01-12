@@ -30,3 +30,11 @@ Thumbs.db
 
 # MCP Config
 mcp_config.json
+
+# Test coverage
+.coverage
+htmlcov/
+coverage.xml
+.pytest_cache/
+test-report.json
+.tox/
