@@ -45,6 +45,8 @@ jobs:
             --exclude='.env' \
             --exclude='postgres-data' \
             --exclude='.DS_Store' \
+            --exclude='nginx/ssl/fullchain.pem' \
+            --exclude='nginx/ssl/privkey.pem' \
             ./ $VPS_USER@$VPS_HOST:$VPS_PATH/
 
           echo "✅ Arquivos sincronizados"
