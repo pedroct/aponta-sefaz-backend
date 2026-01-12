@@ -1,64 +1,44 @@
 # Contexto do Projeto - API Aponta VPS
 
-## Origem
-Projeto criado a partir do `api-aponta-supa` para deploy em VPS Hostinger.
+## 📋 Informações Gerais
 
-## Repositorio
+### Origem
+Projeto criado a partir do `api-aponta-supa` para deploy em VPS Hostinger com CloudFlare.
+
+### Repositório
 - **GitHub:** https://github.com/pedroct/api-aponta-vps.git
 - **Branch atual:** develop
-- **Versao:** v0.1.0
+- **Versão:** v0.1.0
+- **Status:** ✅ Pronto para deploy em produção
 
-## Estrutura de Branches
-```
-main     <- Producao (releases com tags)
-develop  <- Desenvolvimento (branch atual)
-```
+### Deploy
+- **Domínio:** api-aponta.pedroct.com.br
+- **VPS:** Hostinger (31.97.16.12)
+- **CDN/Proxy:** CloudFlare (SSL/TLS Full Strict)
+- **Ambiente:** Production
 
-## Stack
-- **API:** FastAPI (Python 3.12)
-- **Banco:** PostgreSQL 15 Alpine
-- **Proxy:** Nginx Alpine (portas 80/443)
-- **Container:** Docker Compose
+---
 
-## Arquitetura Docker
-```
-nginx:80/443 -> api:8000 -> postgres:5432
-```
+## 📚 Documentação Completa
 
-## Arquivos Principais
-- `docker-compose.yml` - Orquestracao (Nginx + API + PostgreSQL)
-- `Dockerfile` - Multi-stage build otimizado
-- `nginx/nginx.conf` - Proxy reverso com rate limiting
-- `.env.example` - Variaveis de ambiente
-- `scripts/deploy.sh` - Script de deploy automatizado
-- `.cz.toml` - Commitizen (Conventional Commits + SemVer)
+Este projeto possui documentação profissional e abrangente:
 
-## Versionamento
-- **Conventional Commits** para mensagens de commit
-- **SemVer** para versionamento
-- **Commitizen** configurado (`.cz.toml`)
-- **CHANGELOG.md** para historico de mudancas
+### Documentação Técnica
+- **README.md** - Visão geral, quick start e badges
+- **ARCHITECTURE.md** - Arquitetura detalhada com diagramas
+- **API_DOCUMENTATION.md** - Referência completa da API
+- **CONTRIBUTING.md** - Guia para contribuidores
+- **SECURITY.md** - Políticas de segurança
 
-## Proximos Passos Sugeridos
-1. Configurar variaveis de ambiente (.env) na VPS
-2. Executar deploy com `./scripts/deploy.sh`
-3. Configurar SSL/HTTPS (certificados em nginx/ssl/)
-4. Configurar dominio no Nginx
+### Documentação de Deploy
+- **DEPLOY_INSTRUCTIONS.md** - Guia completo de deploy
+- **CLOUDFLARE_SETUP.md** - Configuração CloudFlare
+- **CLOUDFLARE_FINAL_SETUP.md** - Setup final SSL
 
-## Comandos Uteis
-```bash
-# Deploy
-./scripts/deploy.sh
+**Total:** 10 documentos | ~8,000 linhas | 100% coverage
 
-# Logs
-docker compose logs -f
+---
 
-# Status
-docker compose ps
+**Para informações detalhadas, consulte README.md**
 
-# Commit com Conventional Commits
-cz commit
-
-# Bump de versao
-cz bump --changelog
-```
+**Última atualização:** 2026-01-12 | **Versão:** 2.0
