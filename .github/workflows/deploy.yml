@@ -106,7 +106,18 @@ jobs:
       - name: Add VPS to known hosts
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+          echo "🔍 Scanning SSH keys from VPS host..."
+          ssh-keyscan -T 10 -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts 2>&1 || {
+            echo "⚠️  ssh-keyscan failed, trying with verbose output..."
+            ssh-keyscan -v -T 10 -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts 2>&1 || {
+              echo "❌ Failed to add host to known_hosts"
+              echo "Testing connectivity to ${{ secrets.VPS_HOST }}:22..."
+              nc -zv -w 5 ${{ secrets.VPS_HOST }} 22 || echo "Port 22 not reachable"
+              exit 1
+            }
+          }
+          echo "✅ Host keys added successfully"
+          cat ~/.ssh/known_hosts
 
       - name: Deploy to VPS
         env:
