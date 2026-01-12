@@ -121,18 +121,40 @@ jobs:
 
             echo "🐳 Reconstruindo containers..."
             # Remove orphans para evitar conflitos
-            docker compose down --remove-orphans
-            docker compose build --no-cache
-            docker compose up -d
+            docker compose down --remove-orphans || true
+
+            echo "📦 Building images..."
+            docker compose build --no-cache || {
+              echo "❌ Erro no build dos containers!"
+              docker compose logs
+              exit 1
+            }
+
+            echo "🚀 Starting containers..."
+            docker compose up -d || {
+              echo "❌ Erro ao iniciar containers!"
+              docker compose logs
+              exit 1
+            }
 
             echo "⏳ Aguardando inicialização (60s)..."
             sleep 60
 
-            echo "🔍 Verificando status..."
+            echo "🔍 Verificando status dos containers..."
             docker compose ps
 
+            echo "📋 Logs dos últimos 50 linhas..."
+            docker compose logs --tail=50
+
             echo "🏥 Testando health check interno..."
-            curl -f http://localhost/health || exit 1
+            curl -v http://localhost/health || {
+              echo "❌ Health check falhou!"
+              echo "📋 Logs da API:"
+              docker compose logs api --tail=100
+              echo "📋 Logs do Nginx:"
+              docker compose logs nginx --tail=50
+              exit 1
+            }
 
             echo "✅ Deploy interno concluído!"
           ENDSSH
