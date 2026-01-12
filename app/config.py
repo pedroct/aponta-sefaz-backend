@@ -1,0 +1,88 @@
+"""
+Configurações da aplicação via variáveis de ambiente.
+"""
+
+from pydantic import Field, AliasChoices
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from functools import lru_cache
+
+
+class Settings(BaseSettings):
+    """Configurações da aplicação."""
+
+    # Supabase (opcional em desenvolvimento)
+    supabase_url: str = Field("", validation_alias=AliasChoices("SUPABASE_URL", "supabase_url"))
+    supabase_key: str = Field("", validation_alias=AliasChoices("SUPABASE_KEY", "supabase_key"))
+    supabase_service_role_key: str = Field(
+        "", validation_alias=AliasChoices("SUPABASE_SERVICE_ROLE_KEY", "supabase_service_role_key")
+    )
+
+    # Banco de Dados (pode ser Supabase ou local)
+    database_url: str = Field(
+        "", validation_alias=AliasChoices("DATABASE_URL", "database_url")
+    )
+    database_host: str = "localhost"
+    database_port: int = 5432
+    database_name: str = "aponta_db"
+    database_user: str = "postgres"
+    database_password: str = "postgres"
+
+    # Usamos Field com alias para garantir compatibilidade com diferentes cases
+    database_schema: str = Field(
+        "public", validation_alias=AliasChoices("DATABASE_SCHEMA", "database_schema")
+    )
+
+    # API
+    api_host: str = "0.0.0.0"
+    api_port: int = 8000
+    api_debug: bool = False
+    api_title: str = "API Aponta Supabase"
+    api_version: str = "0.1.0"
+
+    # Ambiente
+    environment: str = "development"
+
+    # CORS
+    cors_origins: str = "http://localhost:3000,http://localhost:5173"
+
+    # Autenticação Azure DevOps
+    auth_enabled: bool = True
+    azure_devops_org_url: str = ""
+    azure_devops_pat: str = ""
+
+    # GitHub
+    github_token: str = ""
+    github_repo: str = ""
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        """Retorna lista de origens CORS permitidas."""
+        return [origin.strip() for origin in self.cors_origins.split(",")]
+
+    @property
+    def database_url_resolved(self) -> str:
+        """Retorna a URL de conexão com o banco de dados."""
+        if self.database_url:
+            return self.database_url
+        return (
+            f"postgresql://{self.database_user}:{self.database_password}"
+            f"@{self.database_host}:{self.database_port}/{self.database_name}"
+        )
+
+    @property
+    def database_url_legacy(self) -> str:
+        """Retorna a URL de conexão com o banco de dados (formato legado)."""
+        return (
+            f"postgresql://{self.database_user}:{self.database_password}"
+            f"@{self.database_host}:{self.database_port}/{self.database_name}"
+        )
+
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+    )
+
+
+@lru_cache
+def get_settings() -> Settings:
+    """Retorna instância singleton das configurações."""
+    return Settings()

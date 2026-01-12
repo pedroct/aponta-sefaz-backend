@@ -1,0 +1,78 @@
+# Docker Compose para VPS Hostinger - Producao
+# API Aponta com Nginx proxy reverso e PostgreSQL
+
+services:
+  # Nginx - Proxy Reverso (porta 80/443)
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-aponta
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - api
+    networks:
+      - aponta-network
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # API FastAPI
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: api-aponta
+    restart: unless-stopped
+    expose:
+      - "8000"
+    env_file:
+      - .env
+    environment:
+      - ENVIRONMENT=production
+      - API_DEBUG=false
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - aponta-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # PostgreSQL 15
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres-aponta
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME:-aponta_db}
+      POSTGRES_USER: ${DATABASE_USER:-postgres}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - aponta-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER:-postgres} -d ${DATABASE_NAME:-aponta_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  aponta-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
