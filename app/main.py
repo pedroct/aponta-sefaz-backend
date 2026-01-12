@@ -4,11 +4,21 @@ API Aponta - Backend para Extensão Azure DevOps
 Aplicação FastAPI com documentação Swagger automática.
 """
 
-from fastapi import FastAPI
+import logging
+import traceback
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from app.config import get_settings
 from app.routers import atividades, integracao, projetos
+
+# Configurar logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 settings = get_settings()
 
@@ -39,7 +49,24 @@ app = FastAPI(
 )
 
 # Logging de inicialização
-print(f"🚀 API Aponta inicializada - Schema: {settings.database_schema}")
+logger.info(f"🚀 API Aponta inicializada - Schema: {settings.database_schema}")
+
+# Global exception handler
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Handle all unhandled exceptions."""
+    logger.error(f"Unhandled exception: {exc}")
+    logger.error(f"Request: {request.method} {request.url}")
+    logger.error(f"Traceback: {traceback.format_exc()}")
+
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "detail": "Internal server error",
+            "error": str(exc),
+            "type": type(exc).__name__
+        },
+    )
 
 # Configurar CORS
 app.add_middleware(

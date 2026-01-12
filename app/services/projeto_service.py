@@ -1,3 +1,4 @@
+import logging
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from datetime import datetime, timezone
@@ -5,6 +6,8 @@ import uuid
 from app.models.projeto import Projeto
 from app.services.azure import AzureService
 from app.auth import AzureDevOpsUser
+
+logger = logging.getLogger(__name__)
 
 
 class ProjetoService:
@@ -26,8 +29,15 @@ class ProjetoService:
         Busca projetos do Azure DevOps e atualiza o banco local.
         Realiza upsert baseado no external_id.
         """
+        logger.info(f"Iniciando sincronização de projetos para usuário: {self.user.display_name}")
+
         # 1. Buscar do Azure
-        azure_projects = await self.azure_service.list_projects()
+        try:
+            azure_projects = await self.azure_service.list_projects()
+            logger.info(f"Recebidos {len(azure_projects)} projetos do Azure DevOps")
+        except Exception as e:
+            logger.error(f"Erro ao buscar projetos do Azure: {e}")
+            raise
 
         synced_count = 0
         created_count = 0
@@ -74,11 +84,18 @@ class ProjetoService:
                     last_sync_at=now,
                 )
                 self.db.add(new_proj)
+                self.db.flush()  # Flush imediatamente após adicionar
                 created_count += 1
 
             synced_count += 1
 
-        self.db.commit()
+        try:
+            self.db.commit()
+            logger.info(f"Sincronização concluída: {created_count} criados, {updated_count} atualizados")
+        except Exception as e:
+            logger.error(f"Erro ao salvar projetos no banco: {e}")
+            self.db.rollback()
+            raise
 
         return {
             "total_azure": len(azure_projects),
