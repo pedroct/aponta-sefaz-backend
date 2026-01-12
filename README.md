@@ -41,6 +41,10 @@ API Aponta é um backend robusto desenvolvido em FastAPI para gerenciar atividad
 - ✅ **Health checks** integrados
 - ✅ **CORS** configurável
 - ✅ **Conventional Commits** para versionamento semântico
+- ✅ **CI/CD** automatizado com GitHub Actions
+- ✅ **Testes automatizados** com Pytest e cobertura de código
+- ✅ **Global exception handling** com logging estruturado
+- ✅ **Deploy automático** via pipeline GitHub Actions
 
 ### Informações de Deploy
 
@@ -74,12 +78,15 @@ API Aponta é um backend robusto desenvolvido em FastAPI para gerenciar atividad
 - **isort** - Ordenação de imports
 - **Flake8** - Linting
 - **MyPy** - Type checking
-- **Pytest** - Framework de testes (configuração pendente)
+- **Pytest** - Framework de testes com coverage
 
-### DevOps
+### DevOps & CI/CD
+- **GitHub Actions** - Pipeline CI/CD automatizada
+- **pytest-cov** - Cobertura de código
+- **Codecov** - Relatórios de cobertura
 - **Git Flow** - Branching strategy
 - **Commitizen** - Conventional Commits e SemVer
-- **GitHub** - Versionamento e colaboração
+- **rsync** - Sincronização de arquivos para VPS
 
 ---
 
@@ -225,16 +232,36 @@ Veja detalhes em: [CLOUDFLARE_SETUP.md](CLOUDFLARE_SETUP.md)
 
 ## 🚀 Deploy
 
-### Deploy Automatizado
+### Deploy Automático via CI/CD (Recomendado)
+
+O projeto possui pipeline GitHub Actions que faz deploy automático ao fazer push para `develop` ou `main`:
 
 ```bash
-./scripts/deploy.sh
+git add .
+git commit -m "feat: nova funcionalidade"
+git push origin develop
+```
+
+**Pipeline CI/CD:**
+1. 🧪 Executa testes com pytest
+2. 📊 Gera relatório de cobertura
+3. 🚀 Deploy para VPS (só se testes passarem)
+4. ✅ Verifica health check pós-deploy
+
+**Acompanhe:** https://github.com/pedroct/api-aponta-vps/actions
+
+### Deploy Rápido no Servidor
+
+Para deploy manual diretamente no servidor VPS:
+
+```bash
+./QUICK_DEPLOY.sh
 ```
 
 O script irá:
-1. ✅ Verificar se `.env` existe
+1. ✅ Verificar se `.env` e certificados SSL existem
 2. ✅ Parar containers existentes
-3. ✅ Construir imagens Docker
+3. ✅ Construir imagens Docker (sem cache)
 4. ✅ Iniciar todos os serviços
 5. ✅ Executar migrations do banco
 6. ✅ Verificar health da API
@@ -318,32 +345,47 @@ Veja exemplos completos em: [API_DOCUMENTATION.md](API_DOCUMENTATION.md)
 
 ## 🧪 Testes
 
-### Executar Testes (Quando Implementados)
+### Executar Testes Localmente
 
 ```bash
 # Todos os testes
 pytest
 
-# Com coverage
-pytest --cov=app --cov-report=html
+# Com coverage e relatórios
+pytest --cov=app --cov-report=html --cov-report=term
 
 # Testes específicos
-pytest tests/test_atividades.py
+pytest tests/test_health.py
 
 # Com verbose
 pytest -v
+
+# Sem coverage (mais rápido)
+pytest --no-cov
 ```
 
-### Estrutura de Testes (Planejada)
+### Estrutura de Testes
 
 ```
 tests/
-├── conftest.py              # Fixtures compartilhadas
-├── test_main.py             # Testes de endpoints principais
-├── test_atividades.py       # Testes de CRUD de atividades
-├── test_projetos.py         # Testes de projetos
-└── test_integration.py      # Testes de integração
+├── __init__.py              # Package marker
+├── conftest.py              # Fixtures compartilhadas (TestClient, DB)
+├── test_health.py           # Testes de health check ✅
+├── test_atividades.py       # Testes de CRUD de atividades (TODO)
+├── test_projetos.py         # Testes de projetos (TODO)
+└── test_integration.py      # Testes de integração com Azure (TODO)
 ```
+
+### CI/CD Testing
+
+Os testes rodam automaticamente no GitHub Actions em cada push:
+
+1. **Test Job**: Executa antes do deploy
+2. **PostgreSQL Service**: Banco de teste disponível
+3. **Coverage Reports**: Enviados para Codecov
+4. **Deploy Condicional**: Só ocorre se testes passarem
+
+**Ver resultados:** https://github.com/pedroct/api-aponta-vps/actions
 
 ---
 
@@ -446,13 +488,20 @@ Veja: [SECURITY.md](SECURITY.md)
 - [x] Endpoints básicos de atividades
 - [x] Integração Azure DevOps
 - [x] Documentação inicial
+- [x] Pipeline CI/CD com GitHub Actions
+- [x] Testes automatizados com Pytest
+- [x] Coverage reports com Codecov
+- [x] Global exception handler
+- [x] Logging estruturado
+- [x] Deploy automático via pipeline
 
 #### v0.2.0 (Próximo)
-- [ ] Testes automatizados (Pytest)
-- [ ] CI/CD com GitHub Actions
+- [ ] Testes de integração completos
 - [ ] Monitoramento e logs centralizados
 - [ ] Backup automático do banco
 - [ ] Métricas e observabilidade
+- [ ] Cache de respostas
+- [ ] Documentação de API melhorada
 
 #### v1.0.0 (Futuro)
 - [ ] Autenticação JWT

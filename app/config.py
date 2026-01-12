@@ -57,7 +57,25 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> list[str]:
         """Retorna lista de origens CORS permitidas."""
-        return [origin.strip() for origin in self.cors_origins.split(",")]
+        origins = [origin.strip() for origin in self.cors_origins.split(",")]
+
+        # Em produção, adiciona suporte para desenvolvimento local
+        if self.environment == "production":
+            # Adiciona origens localhost comuns para desenvolvimento
+            dev_origins = [
+                "http://localhost:8082",
+                "http://127.0.0.1:8082",
+                "http://localhost:3000",
+                "http://127.0.0.1:3000",
+                "http://localhost:5173",
+                "http://127.0.0.1:5173",
+            ]
+            # Adiciona apenas as que não existem
+            for dev_origin in dev_origins:
+                if dev_origin not in origins:
+                    origins.append(dev_origin)
+
+        return origins
 
     @property
     def database_url_resolved(self) -> str:
