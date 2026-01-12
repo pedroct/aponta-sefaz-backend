@@ -7,4 +7,4 @@ alembic upgrade head
 
 # Inicia a aplicação
 echo "🟢 Iniciando a API Aponta..."
-/usr/bin/python3.12 -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000

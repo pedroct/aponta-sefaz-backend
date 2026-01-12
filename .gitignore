@@ -27,3 +27,6 @@ Thumbs.db
 
 .claude/
 *.code-workspace
+
+# MCP Config
+mcp_config.json

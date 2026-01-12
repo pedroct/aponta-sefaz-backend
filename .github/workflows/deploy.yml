@@ -54,22 +54,41 @@ jobs:
             set -e
             cd ${{ secrets.VPS_PATH }}
 
+            echo "🔍 Pre-flight checks..."
+            if [ ! -f .env ]; then
+              echo "❌ Erro: Arquivo .env não encontrado!"
+              exit 1
+            fi
+            if [ ! -f nginx/ssl/fullchain.pem ] || [ ! -f nginx/ssl/privkey.pem ]; then
+              echo "❌ Erro: Certificados SSL não encontrados!"
+              exit 1
+            fi
+
             echo "🐳 Reconstruindo containers..."
-            docker compose down
+            # Remove orphans para evitar conflitos
+            docker compose down --remove-orphans
             docker compose build --no-cache
             docker compose up -d
 
-            echo "⏳ Aguardando inicialização..."
-            sleep 30
+            echo "⏳ Aguardando inicialização (60s)..."
+            sleep 60
 
             echo "🔍 Verificando status..."
             docker compose ps
 
-            echo "🏥 Testando health check..."
+            echo "🏥 Testando health check interno..."
             curl -f http://localhost/health || exit 1
 
-            echo "✅ Deploy concluído com sucesso!"
+            echo "✅ Deploy interno concluído!"
           ENDSSH
+
+      - name: Verify Public Health
+        run: |
+          echo "🌍 Verificando acesso público (HTTPS)..."
+          # Pequeno delay para propagação/Nginx reload
+          sleep 10
+          curl -f https://api-aponta.pedroct.com.br/health
+          echo "✅ API acessível publicamente!"
 
       - name: Notify deployment status
         if: always()
