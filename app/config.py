@@ -59,21 +59,31 @@ class Settings(BaseSettings):
         """Retorna lista de origens CORS permitidas."""
         origins = [origin.strip() for origin in self.cors_origins.split(",")]
 
-        # Em produção, adiciona suporte para desenvolvimento local
-        if self.environment == "production":
-            # Adiciona origens localhost comuns para desenvolvimento
-            dev_origins = [
-                "http://localhost:8082",
-                "http://127.0.0.1:8082",
-                "http://localhost:3000",
-                "http://127.0.0.1:3000",
-                "http://localhost:5173",
-                "http://127.0.0.1:5173",
-            ]
-            # Adiciona apenas as que não existem
-            for dev_origin in dev_origins:
-                if dev_origin not in origins:
-                    origins.append(dev_origin)
+        # Remove wildcards que não funcionam no CORS do FastAPI
+        origins = [o for o in origins if not o.startswith("https://*.")]
+
+        # Adiciona origens conhecidas do Azure DevOps
+        azure_devops_origins = [
+            "https://dev.azure.com",
+            "https://sefaz-ceara.gallerycdn.vsassets.io",
+            "https://sefaz-ceara-lab.gallerycdn.vsassets.io",
+            "https://vsassets.io",
+        ]
+
+        # Adiciona origens localhost comuns para desenvolvimento
+        dev_origins = [
+            "http://localhost:8082",
+            "http://127.0.0.1:8082",
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+        ]
+
+        # Adiciona todas as origens que não existem
+        for origin in azure_devops_origins + dev_origins:
+            if origin not in origins:
+                origins.append(origin)
 
         return origins
 
