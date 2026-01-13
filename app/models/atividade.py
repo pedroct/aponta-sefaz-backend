@@ -35,7 +35,7 @@ class Atividade(Base):
     # Relacionamento com o projeto (baseado no id interno do projeto)
     projeto = relationship(
         "Projeto",
-        primaryjoin="Atividade.id_projeto == Projeto.external_id",
+        primaryjoin="Atividade.id_projeto == Projeto.id",
         foreign_keys="[Atividade.id_projeto]",
         uselist=False,
         viewonly=True,
