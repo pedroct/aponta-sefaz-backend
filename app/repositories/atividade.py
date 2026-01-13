@@ -14,17 +14,20 @@ class AtividadeRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def create(self, atividade_data: AtividadeCreate) -> Atividade:
+    def create(
+        self, atividade_data: AtividadeCreate, criado_por: str | None = None
+    ) -> Atividade:
         """
         Cria uma nova atividade no banco de dados.
 
         Args:
             atividade_data: Objeto Pydantic com os dados da nova atividade.
+            criado_por: Email ou ID do usuário que está criando a atividade.
 
         Returns:
             O objeto Atividade recém-criado e persistido.
         """
-        db_atividade = Atividade(**atividade_data.model_dump())
+        db_atividade = Atividade(**atividade_data.model_dump(), criado_por=criado_por)
         self.db.add(db_atividade)
         self.db.commit()
         self.db.refresh(db_atividade)

@@ -33,7 +33,9 @@ def criar_atividade(
 ) -> AtividadeResponse:
     """Endpoint para criar uma nova atividade."""
     repository = AtividadeRepository(db)
-    return repository.create(atividade)
+    # Usar email do usuário autenticado, ou display_name como fallback
+    criado_por = current_user.email or current_user.display_name
+    return repository.create(atividade, criado_por=criado_por)
 
 
 @router.get(

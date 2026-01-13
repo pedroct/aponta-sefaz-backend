@@ -47,6 +47,9 @@ class AtividadeResponse(AtividadeBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID = Field(..., description="ID único da atividade")
+    criado_por: str | None = Field(
+        default=None, description="Email ou ID do usuário que criou a atividade"
+    )
     criado_em: datetime = Field(..., description="Data de criação")
     atualizado_em: datetime = Field(..., description="Data da última atualização")
     nome_projeto: str | None = Field(

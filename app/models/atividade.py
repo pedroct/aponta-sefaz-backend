@@ -27,6 +27,12 @@ class Atividade(Base):
         index=True,
         comment="Project ID from Azure Boards (Azure DevOps)",
     )
+    criado_por = Column(
+        String(255),
+        nullable=True,
+        index=True,
+        comment="Email ou ID do usuário que criou a atividade",
+    )
     criado_em = Column(DateTime, default=datetime.utcnow, nullable=False)
     atualizado_em = Column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
