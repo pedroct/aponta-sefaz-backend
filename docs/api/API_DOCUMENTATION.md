@@ -1348,9 +1348,9 @@ curl -X DELETE \
 ### Documentation
 
 - **API Documentation**: This document
-- **Architecture**: See [ARCHITECTURE.md](/home/pedroctdev/apps/api-aponta-vps/ARCHITECTURE.md)
-- **Security**: See [SECURITY.md](/home/pedroctdev/apps/api-aponta-vps/SECURITY.md)
-- **Deployment**: See [DEPLOY_INSTRUCTIONS.md](/home/pedroctdev/apps/api-aponta-vps/DEPLOY_INSTRUCTIONS.md)
+- **Architecture**: See [ARCHITECTURE.md](../architecture/ARCHITECTURE.md)
+- **Security**: See [SECURITY.md](../security/SECURITY.md)
+- **Deployment**: See [DEPLOY_INSTRUCTIONS.md](../deploy/DEPLOY_INSTRUCTIONS.md)
 
 ### Interactive Tools
 

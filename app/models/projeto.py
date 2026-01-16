@@ -2,6 +2,7 @@ from sqlalchemy import Column, String, DateTime, Text
 from app.models.custom_types import GUID
 import uuid
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 from app.database import Base
 
 
@@ -33,3 +34,15 @@ class Projeto(Base):
     updated_at = Column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+    # Relacionamento N:N com atividades através da tabela de junção
+    atividade_projetos = relationship(
+        "AtividadeProjeto",
+        back_populates="projeto",
+        cascade="all, delete-orphan",
+    )
+
+    @property
+    def atividades(self) -> list:
+        """Retorna a lista de atividades associadas ao projeto."""
+        return [ap.atividade for ap in self.atividade_projetos if ap.atividade]

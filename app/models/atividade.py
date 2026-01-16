@@ -19,14 +19,6 @@ class Atividade(Base):
     nome = Column(String(255), nullable=False, index=True)
     descricao = Column(Text, nullable=True)
     ativo = Column(Boolean, default=True, nullable=False)
-    # ID do projeto no Azure Boards
-    # Preenchido via Azure DevOps Web Extension SDK
-    id_projeto = Column(
-        GUID(),
-        nullable=False,
-        index=True,
-        comment="Project ID from Azure Boards (Azure DevOps)",
-    )
     criado_por = Column(
         String(255),
         nullable=True,
@@ -38,20 +30,32 @@ class Atividade(Base):
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
 
-    # Relacionamento com o projeto (baseado no id interno do projeto)
-    projeto = relationship(
-        "Projeto",
-        primaryjoin="Atividade.id_projeto == Projeto.id",
-        foreign_keys="[Atividade.id_projeto]",
-        uselist=False,
-        viewonly=True,
+    # Relacionamento N:N com projetos através da tabela de junção
+    atividade_projetos = relationship(
+        "AtividadeProjeto",
+        back_populates="atividade",
+        cascade="all, delete-orphan",
         lazy="joined",
     )
 
     @property
+    def projetos(self) -> list:
+        """Retorna a lista de projetos associados à atividade."""
+        return [ap.projeto for ap in self.atividade_projetos if ap.projeto]
+
+    @property
     def nome_projeto(self) -> str | None:
-        """Retorna o nome do projeto associado, se existir."""
-        return self.projeto.nome if self.projeto else None
+        """Retorna o nome do primeiro projeto associado (retrocompatibilidade)."""
+        if self.atividade_projetos and self.atividade_projetos[0].projeto:
+            return self.atividade_projetos[0].projeto.nome
+        return None
+
+    @property
+    def id_projeto(self) -> uuid.UUID | None:
+        """Retorna o ID do primeiro projeto associado (retrocompatibilidade)."""
+        if self.atividade_projetos:
+            return self.atividade_projetos[0].id_projeto
+        return None
 
     def __repr__(self) -> str:
         return f"<Atividade(id={self.id}, nome='{self.nome}')>"

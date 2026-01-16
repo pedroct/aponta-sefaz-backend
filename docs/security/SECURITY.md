@@ -1177,7 +1177,7 @@ services:
 
 **Security Issues**: security@pedroct.com.br
 **General Support**: contato@pedroct.com.br
-**Documentation**: See [ARCHITECTURE.md](/home/pedroctdev/apps/api-aponta-vps/ARCHITECTURE.md) and [API_DOCUMENTATION.md](/home/pedroctdev/apps/api-aponta-vps/API_DOCUMENTATION.md)
+**Documentation**: See [ARCHITECTURE.md](../architecture/ARCHITECTURE.md) and [API_DOCUMENTATION.md](../api/API_DOCUMENTATION.md)
 
 ---
 

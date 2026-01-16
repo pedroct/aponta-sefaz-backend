@@ -39,6 +39,18 @@ Este projeto possui documentação profissional e abrangente:
 
 ---
 
+### Caminhos atuais
+- `README.md`
+- `docs/architecture/ARCHITECTURE.md`
+- `docs/api/API_DOCUMENTATION.md`
+- `docs/contributing/CONTRIBUTING.md`
+- `docs/security/SECURITY.md`
+- `docs/deploy/DEPLOY_INSTRUCTIONS.md`
+- `docs/deploy/CLOUDFLARE_SETUP.md`
+- `docs/deploy/CLOUDFLARE_FINAL_SETUP.md`
+
+---
+
 **Para informações detalhadas, consulte README.md**
 
 **Última atualização:** 2026-01-12 | **Versão:** 2.0

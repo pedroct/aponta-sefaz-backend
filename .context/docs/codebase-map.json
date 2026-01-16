@@ -1,0 +1,942 @@
+{
+  "version": "1.0.0",
+  "generated": "2026-01-16T20:53:02.996Z",
+  "stack": {
+    "primaryLanguage": "python",
+    "languages": [
+      "python"
+    ],
+    "frameworks": [],
+    "buildTools": [
+      "docker",
+      "docker-compose"
+    ],
+    "testFrameworks": [
+      "pytest"
+    ],
+    "packageManager": null,
+    "isMonorepo": false,
+    "hasDocker": true,
+    "hasCI": true
+  },
+  "structure": {
+    "totalFiles": 87,
+    "topDirectories": [
+      {
+        "name": "alembic",
+        "fileCount": 10
+      },
+      {
+        "name": "alembic.ini",
+        "fileCount": 1
+      },
+      {
+        "name": "API_DOCUMENTATION.md",
+        "fileCount": 1
+      },
+      {
+        "name": "api-aponta-vps.code-workspace",
+        "fileCount": 1
+      },
+      {
+        "name": "app",
+        "fileCount": 41
+      },
+      {
+        "name": "ARCHITECTURE.md",
+        "fileCount": 1
+      },
+      {
+        "name": "CHANGELOG.md",
+        "fileCount": 1
+      },
+      {
+        "name": "CLOUDFLARE_FINAL_SETUP.md",
+        "fileCount": 1
+      },
+      {
+        "name": "CLOUDFLARE_SETUP.md",
+        "fileCount": 1
+      },
+      {
+        "name": "CONTRIBUTING.md",
+        "fileCount": 1
+      },
+      {
+        "name": "COPY_FILES_TO_VPS.md",
+        "fileCount": 1
+      },
+      {
+        "name": "DEPLOY_INSTRUCTIONS.md",
+        "fileCount": 1
+      },
+      {
+        "name": "DEPLOYMENT_SETUP.md",
+        "fileCount": 1
+      },
+      {
+        "name": "docker-compose.yml",
+        "fileCount": 1
+      },
+      {
+        "name": "Dockerfile",
+        "fileCount": 1
+      },
+      {
+        "name": "manual_deploy.sh",
+        "fileCount": 1
+      },
+      {
+        "name": "mcp_config.json",
+        "fileCount": 1
+      },
+      {
+        "name": "nginx",
+        "fileCount": 4
+      },
+      {
+        "name": "pytest.ini",
+        "fileCount": 1
+      },
+      {
+        "name": "QUICK_DEPLOY.sh",
+        "fileCount": 1
+      },
+      {
+        "name": "README.md",
+        "fileCount": 1
+      },
+      {
+        "name": "requirements.txt",
+        "fileCount": 1
+      },
+      {
+        "name": "scripts",
+        "fileCount": 4
+      },
+      {
+        "name": "SECURITY.md",
+        "fileCount": 1
+      },
+      {
+        "name": "test-report.json",
+        "fileCount": 1
+      },
+      {
+        "name": "tests",
+        "fileCount": 6
+      },
+      {
+        "name": "WORKSPACE_CONTEXT.md",
+        "fileCount": 1
+      }
+    ],
+    "languageDistribution": [
+      {
+        "extension": ".py",
+        "count": 29
+      },
+      {
+        "extension": ".pyc",
+        "count": 28
+      },
+      {
+        "extension": ".md",
+        "count": 13
+      },
+      {
+        "extension": ".sh",
+        "count": 4
+      },
+      {
+        "extension": ".json",
+        "count": 2
+      },
+      {
+        "extension": ".ini",
+        "count": 2
+      },
+      {
+        "extension": ".pem",
+        "count": 2
+      },
+      {
+        "extension": ".yml",
+        "count": 1
+      },
+      {
+        "extension": ".code-workspace",
+        "count": 1
+      },
+      {
+        "extension": ".txt",
+        "count": 1
+      }
+    ]
+  },
+  "architecture": {
+    "layers": [
+      {
+        "name": "Config",
+        "description": "Configuration and constants",
+        "directories": [
+          "app"
+        ],
+        "symbolCount": 2,
+        "dependsOn": []
+      },
+      {
+        "name": "Repositories",
+        "description": "Data access and persistence",
+        "directories": [
+          "app",
+          "app\\repositories"
+        ],
+        "symbolCount": 2,
+        "dependsOn": []
+      },
+      {
+        "name": "Controllers",
+        "description": "Request handling and routing",
+        "directories": [
+          "alembic\\versions",
+          "app\\routers"
+        ],
+        "symbolCount": 10,
+        "dependsOn": []
+      },
+      {
+        "name": "Models",
+        "description": "Data structures and domain objects",
+        "directories": [
+          "app\\schemas",
+          "app\\models"
+        ],
+        "symbolCount": 8,
+        "dependsOn": []
+      },
+      {
+        "name": "Services",
+        "description": "Business logic and orchestration",
+        "directories": [
+          "app\\services"
+        ],
+        "symbolCount": 2,
+        "dependsOn": []
+      }
+    ],
+    "patterns": [
+      {
+        "name": "Repository",
+        "confidence": 0.9,
+        "description": "Abstracts data access logic",
+        "occurrences": 1
+      },
+      {
+        "name": "Service Layer",
+        "confidence": 0.85,
+        "description": "Encapsulates business logic in service classes",
+        "occurrences": 2
+      }
+    ],
+    "entryPoints": []
+  },
+  "symbols": {
+    "classes": [
+      {
+        "name": "Atividade",
+        "kind": "class",
+        "file": "app\\models\\atividade.py",
+        "line": 13,
+        "exported": true
+      },
+      {
+        "name": "AtividadeBase",
+        "kind": "class",
+        "file": "app\\schemas\\atividade.py",
+        "line": 10,
+        "exported": true
+      },
+      {
+        "name": "AtividadeCreate",
+        "kind": "class",
+        "file": "app\\schemas\\atividade.py",
+        "line": 23,
+        "exported": true
+      },
+      {
+        "name": "AtividadeListResponse",
+        "kind": "class",
+        "file": "app\\schemas\\atividade.py",
+        "line": 60,
+        "exported": true
+      },
+      {
+        "name": "AtividadeRepository",
+        "kind": "class",
+        "file": "app\\repositories\\atividade.py",
+        "line": 11,
+        "exported": true
+      },
+      {
+        "name": "AtividadeResponse",
+        "kind": "class",
+        "file": "app\\schemas\\atividade.py",
+        "line": 44,
+        "exported": true
+      },
+      {
+        "name": "AtividadeUpdate",
+        "kind": "class",
+        "file": "app\\schemas\\atividade.py",
+        "line": 29,
+        "exported": true
+      },
+      {
+        "name": "AzureDevOpsUser",
+        "kind": "class",
+        "file": "app\\auth.py",
+        "line": 25,
+        "exported": true
+      },
+      {
+        "name": "AzureService",
+        "kind": "class",
+        "file": "app\\services\\azure.py",
+        "line": 13,
+        "exported": true
+      },
+      {
+        "name": "GUID",
+        "kind": "class",
+        "file": "app\\models\\custom_types.py",
+        "line": 10,
+        "exported": true
+      },
+      {
+        "name": "Projeto",
+        "kind": "class",
+        "file": "app\\models\\projeto.py",
+        "line": 8,
+        "exported": true
+      },
+      {
+        "name": "ProjetoService",
+        "kind": "class",
+        "file": "app\\services\\projeto_service.py",
+        "line": 13,
+        "exported": true
+      },
+      {
+        "name": "Settings",
+        "kind": "class",
+        "file": "app\\config.py",
+        "line": 10,
+        "exported": true
+      },
+      {
+        "name": "SupabaseClient",
+        "kind": "class",
+        "file": "app\\supabase_client.py",
+        "line": 11,
+        "exported": true
+      }
+    ],
+    "interfaces": [],
+    "functions": [
+      {
+        "name": "api_info",
+        "kind": "function",
+        "file": "app\\main.py",
+        "line": 108,
+        "exported": true
+      },
+      {
+        "name": "atualizar_atividade",
+        "kind": "function",
+        "file": "app\\routers\\atividades.py",
+        "line": 93,
+        "exported": true
+      },
+      {
+        "name": "client",
+        "kind": "function",
+        "file": "tests\\conftest.py",
+        "line": 56,
+        "exported": true
+      },
+      {
+        "name": "collect_metrics",
+        "kind": "function",
+        "file": "scripts\\collect_metrics.py",
+        "line": 42,
+        "exported": true
+      },
+      {
+        "name": "criar_atividade",
+        "kind": "function",
+        "file": "app\\routers\\atividades.py",
+        "line": 29,
+        "exported": true
+      },
+      {
+        "name": "db_session",
+        "kind": "function",
+        "file": "tests\\conftest.py",
+        "line": 46,
+        "exported": true
+      },
+      {
+        "name": "downgrade",
+        "kind": "function",
+        "file": "alembic\\versions\\90324eefb107_initial_schema_api_aponta.py",
+        "line": 62,
+        "exported": true
+      },
+      {
+        "name": "downgrade",
+        "kind": "function",
+        "file": "alembic\\versions\\a1b2c3d4e5f6_add_criado_por_to_atividades.py",
+        "line": 41,
+        "exported": true
+      },
+      {
+        "name": "downgrade",
+        "kind": "function",
+        "file": "alembic\\versions\\ebd442876620_dummy.py",
+        "line": 27,
+        "exported": true
+      },
+      {
+        "name": "ensure_schema_exists",
+        "kind": "function",
+        "file": "scripts\\collect_metrics.py",
+        "line": 18,
+        "exported": true
+      },
+      {
+        "name": "excluir_atividade",
+        "kind": "function",
+        "file": "app\\routers\\atividades.py",
+        "line": 118,
+        "exported": true
+      },
+      {
+        "name": "get_current_user",
+        "kind": "function",
+        "file": "app\\auth.py",
+        "line": 193,
+        "exported": true
+      },
+      {
+        "name": "get_db",
+        "kind": "function",
+        "file": "app\\database.py",
+        "line": 29,
+        "exported": true
+      },
+      {
+        "name": "get_settings",
+        "kind": "function",
+        "file": "app\\config.py",
+        "line": 114,
+        "exported": true
+      },
+      {
+        "name": "get_supabase",
+        "kind": "function",
+        "file": "app\\supabase_client.py",
+        "line": 45,
+        "exported": true
+      },
+      {
+        "name": "get_supabase_admin",
+        "kind": "function",
+        "file": "app\\supabase_client.py",
+        "line": 55,
+        "exported": true
+      },
+      {
+        "name": "global_exception_handler",
+        "kind": "function",
+        "file": "app\\main.py",
+        "line": 56,
+        "exported": true
+      },
+      {
+        "name": "health_check",
+        "kind": "function",
+        "file": "app\\main.py",
+        "line": 96,
+        "exported": true
+      },
+      {
+        "name": "lifespan",
+        "kind": "function",
+        "file": "app\\main.py",
+        "line": 27,
+        "exported": true
+      },
+      {
+        "name": "list_projects",
+        "kind": "function",
+        "file": "app\\routers\\projetos.py",
+        "line": 23,
+        "exported": true
+      },
+      {
+        "name": "listar_atividades",
+        "kind": "function",
+        "file": "app\\routers\\atividades.py",
+        "line": 47,
+        "exported": true
+      },
+      {
+        "name": "listar_projetos",
+        "kind": "function",
+        "file": "app\\routers\\integracao.py",
+        "line": 9,
+        "exported": true
+      },
+      {
+        "name": "obter_atividade",
+        "kind": "function",
+        "file": "app\\routers\\atividades.py",
+        "line": 69,
+        "exported": true
+      },
+      {
+        "name": "run_migrations_offline",
+        "kind": "function",
+        "file": "alembic\\env.py",
+        "line": 37,
+        "exported": true
+      },
+      {
+        "name": "run_migrations_online",
+        "kind": "function",
+        "file": "alembic\\env.py",
+        "line": 51,
+        "exported": true
+      },
+      {
+        "name": "sync_projects",
+        "kind": "function",
+        "file": "app\\routers\\projetos.py",
+        "line": 11,
+        "exported": true
+      },
+      {
+        "name": "test_api_info",
+        "kind": "function",
+        "file": "tests\\test_health.py",
+        "line": 26,
+        "exported": true
+      },
+      {
+        "name": "test_db",
+        "kind": "function",
+        "file": "tests\\conftest.py",
+        "line": 34,
+        "exported": true
+      },
+      {
+        "name": "test_health_check",
+        "kind": "function",
+        "file": "tests\\test_health.py",
+        "line": 8,
+        "exported": true
+      },
+      {
+        "name": "test_root_endpoint",
+        "kind": "function",
+        "file": "tests\\test_health.py",
+        "line": 18,
+        "exported": true
+      },
+      {
+        "name": "upgrade",
+        "kind": "function",
+        "file": "alembic\\versions\\90324eefb107_initial_schema_api_aponta.py",
+        "line": 20,
+        "exported": true
+      },
+      {
+        "name": "upgrade",
+        "kind": "function",
+        "file": "alembic\\versions\\a1b2c3d4e5f6_add_criado_por_to_atividades.py",
+        "line": 19,
+        "exported": true
+      },
+      {
+        "name": "upgrade",
+        "kind": "function",
+        "file": "alembic\\versions\\ebd442876620_dummy.py",
+        "line": 20,
+        "exported": true
+      },
+      {
+        "name": "validate_azure_token",
+        "kind": "function",
+        "file": "app\\auth.py",
+        "line": 44,
+        "exported": true
+      },
+      {
+        "name": "_fetch_user_profile",
+        "kind": "function",
+        "file": "app\\auth.py",
+        "line": 93,
+        "exported": false
+      }
+    ],
+    "types": [],
+    "enums": []
+  },
+  "publicAPI": [
+    {
+      "name": "api_info",
+      "kind": "function",
+      "file": "app\\main.py",
+      "line": 108,
+      "exported": true
+    },
+    {
+      "name": "Atividade",
+      "kind": "class",
+      "file": "app\\models\\atividade.py",
+      "line": 13,
+      "exported": true
+    },
+    {
+      "name": "AtividadeBase",
+      "kind": "class",
+      "file": "app\\schemas\\atividade.py",
+      "line": 10,
+      "exported": true
+    },
+    {
+      "name": "AtividadeCreate",
+      "kind": "class",
+      "file": "app\\schemas\\atividade.py",
+      "line": 23,
+      "exported": true
+    },
+    {
+      "name": "AtividadeListResponse",
+      "kind": "class",
+      "file": "app\\schemas\\atividade.py",
+      "line": 60,
+      "exported": true
+    },
+    {
+      "name": "AtividadeRepository",
+      "kind": "class",
+      "file": "app\\repositories\\atividade.py",
+      "line": 11,
+      "exported": true
+    },
+    {
+      "name": "AtividadeResponse",
+      "kind": "class",
+      "file": "app\\schemas\\atividade.py",
+      "line": 44,
+      "exported": true
+    },
+    {
+      "name": "AtividadeUpdate",
+      "kind": "class",
+      "file": "app\\schemas\\atividade.py",
+      "line": 29,
+      "exported": true
+    },
+    {
+      "name": "atualizar_atividade",
+      "kind": "function",
+      "file": "app\\routers\\atividades.py",
+      "line": 93,
+      "exported": true
+    },
+    {
+      "name": "AzureDevOpsUser",
+      "kind": "class",
+      "file": "app\\auth.py",
+      "line": 25,
+      "exported": true
+    },
+    {
+      "name": "AzureService",
+      "kind": "class",
+      "file": "app\\services\\azure.py",
+      "line": 13,
+      "exported": true
+    },
+    {
+      "name": "client",
+      "kind": "function",
+      "file": "tests\\conftest.py",
+      "line": 56,
+      "exported": true
+    },
+    {
+      "name": "collect_metrics",
+      "kind": "function",
+      "file": "scripts\\collect_metrics.py",
+      "line": 42,
+      "exported": true
+    },
+    {
+      "name": "criar_atividade",
+      "kind": "function",
+      "file": "app\\routers\\atividades.py",
+      "line": 29,
+      "exported": true
+    },
+    {
+      "name": "db_session",
+      "kind": "function",
+      "file": "tests\\conftest.py",
+      "line": 46,
+      "exported": true
+    },
+    {
+      "name": "downgrade",
+      "kind": "function",
+      "file": "alembic\\versions\\90324eefb107_initial_schema_api_aponta.py",
+      "line": 62,
+      "exported": true
+    },
+    {
+      "name": "downgrade",
+      "kind": "function",
+      "file": "alembic\\versions\\a1b2c3d4e5f6_add_criado_por_to_atividades.py",
+      "line": 41,
+      "exported": true
+    },
+    {
+      "name": "downgrade",
+      "kind": "function",
+      "file": "alembic\\versions\\ebd442876620_dummy.py",
+      "line": 27,
+      "exported": true
+    },
+    {
+      "name": "ensure_schema_exists",
+      "kind": "function",
+      "file": "scripts\\collect_metrics.py",
+      "line": 18,
+      "exported": true
+    },
+    {
+      "name": "excluir_atividade",
+      "kind": "function",
+      "file": "app\\routers\\atividades.py",
+      "line": 118,
+      "exported": true
+    },
+    {
+      "name": "get_current_user",
+      "kind": "function",
+      "file": "app\\auth.py",
+      "line": 193,
+      "exported": true
+    },
+    {
+      "name": "get_db",
+      "kind": "function",
+      "file": "app\\database.py",
+      "line": 29,
+      "exported": true
+    },
+    {
+      "name": "get_settings",
+      "kind": "function",
+      "file": "app\\config.py",
+      "line": 114,
+      "exported": true
+    },
+    {
+      "name": "get_supabase",
+      "kind": "function",
+      "file": "app\\supabase_client.py",
+      "line": 45,
+      "exported": true
+    },
+    {
+      "name": "get_supabase_admin",
+      "kind": "function",
+      "file": "app\\supabase_client.py",
+      "line": 55,
+      "exported": true
+    },
+    {
+      "name": "global_exception_handler",
+      "kind": "function",
+      "file": "app\\main.py",
+      "line": 56,
+      "exported": true
+    },
+    {
+      "name": "GUID",
+      "kind": "class",
+      "file": "app\\models\\custom_types.py",
+      "line": 10,
+      "exported": true
+    },
+    {
+      "name": "health_check",
+      "kind": "function",
+      "file": "app\\main.py",
+      "line": 96,
+      "exported": true
+    },
+    {
+      "name": "lifespan",
+      "kind": "function",
+      "file": "app\\main.py",
+      "line": 27,
+      "exported": true
+    },
+    {
+      "name": "list_projects",
+      "kind": "function",
+      "file": "app\\routers\\projetos.py",
+      "line": 23,
+      "exported": true
+    },
+    {
+      "name": "listar_atividades",
+      "kind": "function",
+      "file": "app\\routers\\atividades.py",
+      "line": 47,
+      "exported": true
+    },
+    {
+      "name": "listar_projetos",
+      "kind": "function",
+      "file": "app\\routers\\integracao.py",
+      "line": 9,
+      "exported": true
+    },
+    {
+      "name": "obter_atividade",
+      "kind": "function",
+      "file": "app\\routers\\atividades.py",
+      "line": 69,
+      "exported": true
+    },
+    {
+      "name": "Projeto",
+      "kind": "class",
+      "file": "app\\models\\projeto.py",
+      "line": 8,
+      "exported": true
+    },
+    {
+      "name": "ProjetoService",
+      "kind": "class",
+      "file": "app\\services\\projeto_service.py",
+      "line": 13,
+      "exported": true
+    },
+    {
+      "name": "run_migrations_offline",
+      "kind": "function",
+      "file": "alembic\\env.py",
+      "line": 37,
+      "exported": true
+    },
+    {
+      "name": "run_migrations_online",
+      "kind": "function",
+      "file": "alembic\\env.py",
+      "line": 51,
+      "exported": true
+    },
+    {
+      "name": "Settings",
+      "kind": "class",
+      "file": "app\\config.py",
+      "line": 10,
+      "exported": true
+    },
+    {
+      "name": "SupabaseClient",
+      "kind": "class",
+      "file": "app\\supabase_client.py",
+      "line": 11,
+      "exported": true
+    },
+    {
+      "name": "sync_projects",
+      "kind": "function",
+      "file": "app\\routers\\projetos.py",
+      "line": 11,
+      "exported": true
+    },
+    {
+      "name": "test_api_info",
+      "kind": "function",
+      "file": "tests\\test_health.py",
+      "line": 26,
+      "exported": true
+    },
+    {
+      "name": "test_db",
+      "kind": "function",
+      "file": "tests\\conftest.py",
+      "line": 34,
+      "exported": true
+    },
+    {
+      "name": "test_health_check",
+      "kind": "function",
+      "file": "tests\\test_health.py",
+      "line": 8,
+      "exported": true
+    },
+    {
+      "name": "test_root_endpoint",
+      "kind": "function",
+      "file": "tests\\test_health.py",
+      "line": 18,
+      "exported": true
+    },
+    {
+      "name": "upgrade",
+      "kind": "function",
+      "file": "alembic\\versions\\90324eefb107_initial_schema_api_aponta.py",
+      "line": 20,
+      "exported": true
+    },
+    {
+      "name": "upgrade",
+      "kind": "function",
+      "file": "alembic\\versions\\a1b2c3d4e5f6_add_criado_por_to_atividades.py",
+      "line": 19,
+      "exported": true
+    },
+    {
+      "name": "upgrade",
+      "kind": "function",
+      "file": "alembic\\versions\\ebd442876620_dummy.py",
+      "line": 20,
+      "exported": true
+    },
+    {
+      "name": "validate_azure_token",
+      "kind": "function",
+      "file": "app\\auth.py",
+      "line": 44,
+      "exported": true
+    }
+  ],
+  "dependencies": {
+    "mostImported": []
+  },
+  "stats": {
+    "totalSymbols": 49,
+    "exportedSymbols": 48,
+    "analysisTimeMs": 208
+  }
+}

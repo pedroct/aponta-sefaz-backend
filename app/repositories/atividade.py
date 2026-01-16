@@ -3,8 +3,11 @@ Repository para operações de banco de dados da entidade Atividade.
 """
 
 from uuid import UUID
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy import exists
 from app.models.atividade import Atividade
+from app.models.atividade_projeto import AtividadeProjeto
+from app.models.projeto import Projeto
 from app.schemas.atividade import AtividadeCreate, AtividadeUpdate
 
 
@@ -14,11 +17,72 @@ class AtividadeRepository:
     def __init__(self, db: Session):
         self.db = db
 
+    def _validate_projetos(self, ids_projetos: list[UUID]) -> list[UUID]:
+        """
+        Valida se todos os IDs de projetos existem no banco de dados.
+
+        Args:
+            ids_projetos: Lista de UUIDs dos projetos.
+
+        Returns:
+            Lista de IDs de projetos válidos.
+
+        Raises:
+            ValueError: Se algum projeto não existir.
+        """
+        projetos_existentes = (
+            self.db.query(Projeto.id).filter(Projeto.id.in_(ids_projetos)).all()
+        )
+        ids_existentes = {p.id for p in projetos_existentes}
+        ids_invalidos = set(ids_projetos) - ids_existentes
+
+        if ids_invalidos:
+            raise ValueError(
+                f"Projetos não encontrados: {', '.join(str(id) for id in ids_invalidos)}"
+            )
+
+        return list(ids_existentes)
+
+    def _criar_relacionamentos_projetos(
+        self, atividade: Atividade, ids_projetos: list[UUID]
+    ) -> None:
+        """
+        Cria os relacionamentos entre a atividade e os projetos.
+
+        Args:
+            atividade: Objeto Atividade.
+            ids_projetos: Lista de UUIDs dos projetos.
+        """
+        for id_projeto in ids_projetos:
+            atividade_projeto = AtividadeProjeto(
+                id_atividade=atividade.id, id_projeto=id_projeto
+            )
+            self.db.add(atividade_projeto)
+
+    def _atualizar_relacionamentos_projetos(
+        self, atividade: Atividade, ids_projetos: list[UUID]
+    ) -> None:
+        """
+        Atualiza os relacionamentos entre a atividade e os projetos.
+        Remove todos os relacionamentos existentes e cria os novos.
+
+        Args:
+            atividade: Objeto Atividade.
+            ids_projetos: Lista de UUIDs dos projetos.
+        """
+        # Remove todos os relacionamentos existentes
+        self.db.query(AtividadeProjeto).filter(
+            AtividadeProjeto.id_atividade == atividade.id
+        ).delete()
+
+        # Cria os novos relacionamentos
+        self._criar_relacionamentos_projetos(atividade, ids_projetos)
+
     def create(
         self, atividade_data: AtividadeCreate, criado_por: str | None = None
     ) -> Atividade:
         """
-        Cria uma nova atividade no banco de dados.
+        Cria uma nova atividade no banco de dados com relacionamentos N:N.
 
         Args:
             atividade_data: Objeto Pydantic com os dados da nova atividade.
@@ -26,17 +90,35 @@ class AtividadeRepository:
 
         Returns:
             O objeto Atividade recém-criado e persistido.
+
+        Raises:
+            ValueError: Se algum projeto não existir.
         """
-        db_atividade = Atividade(**atividade_data.model_dump(), criado_por=criado_por)
+        # Validar projetos
+        ids_projetos = atividade_data.ids_projetos
+        self._validate_projetos(ids_projetos)
+
+        # Criar atividade sem os campos de relacionamento
+        atividade_dict = atividade_data.model_dump(
+            exclude={"ids_projetos", "id_projeto"}
+        )
+        db_atividade = Atividade(**atividade_dict, criado_por=criado_por)
         self.db.add(db_atividade)
+        self.db.flush()  # Gera o ID da atividade
+
+        # Criar relacionamentos com projetos
+        self._criar_relacionamentos_projetos(db_atividade, ids_projetos)
+
         self.db.commit()
         self.db.refresh(db_atividade)
-        return db_atividade
+
+        # Recarregar com os relacionamentos
+        return self.get_by_id(db_atividade.id)
 
     def get_by_id(self, atividade_id: UUID) -> Atividade | None:
         """
         Busca uma atividade específica pelo seu ID único.
-        Realiza um JOIN com a tabela de projetos para retornar o nome do projeto.
+        Realiza eager loading dos projetos relacionados.
 
         Args:
             atividade_id: UUID da atividade.
@@ -46,7 +128,11 @@ class AtividadeRepository:
         """
         return (
             self.db.query(Atividade)
-            .options(joinedload(Atividade.projeto))
+            .options(
+                selectinload(Atividade.atividade_projetos).joinedload(
+                    AtividadeProjeto.projeto
+                )
+            )
             .filter(Atividade.id == atividade_id)
             .first()
         )
@@ -61,16 +147,36 @@ class AtividadeRepository:
         """
         Lista atividades com paginação e filtros opcionais.
         Retorna uma tupla (lista de atividades, total de registros).
-        """
-        query = self.db.query(Atividade).options(joinedload(Atividade.projeto))
 
-        # Aplicar filtros
+        Args:
+            skip: Número de registros a pular (paginação).
+            limit: Máximo de registros a retornar.
+            ativo: Filtro por status ativo/inativo.
+            id_projeto: Filtro por projeto (retorna atividades que contêm este projeto).
+
+        Returns:
+            Tupla (lista de atividades, total de registros).
+        """
+        query = self.db.query(Atividade).options(
+            selectinload(Atividade.atividade_projetos).joinedload(
+                AtividadeProjeto.projeto
+            )
+        )
+
+        # Aplicar filtro de status
         if ativo is not None:
             query = query.filter(Atividade.ativo == ativo)
-        if id_projeto is not None:
-            query = query.filter(Atividade.id_projeto == id_projeto)
 
-        # Contar total
+        # Aplicar filtro de projeto (busca atividades que contêm o projeto)
+        if id_projeto is not None:
+            query = query.filter(
+                exists().where(
+                    (AtividadeProjeto.id_atividade == Atividade.id)
+                    & (AtividadeProjeto.id_projeto == id_projeto)
+                )
+            )
+
+        # Contar total antes de paginação
         total = query.count()
 
         # Aplicar paginação e ordenação
@@ -83,22 +189,59 @@ class AtividadeRepository:
     def update(
         self, atividade_id: UUID, atividade_data: AtividadeUpdate
     ) -> Atividade | None:
-        """Atualiza uma atividade existente."""
+        """
+        Atualiza uma atividade existente.
+
+        Args:
+            atividade_id: UUID da atividade.
+            atividade_data: Dados para atualização.
+
+        Returns:
+            Atividade atualizada ou None se não encontrada.
+
+        Raises:
+            ValueError: Se algum projeto não existir.
+        """
         db_atividade = self.get_by_id(atividade_id)
         if not db_atividade:
             return None
 
-        # Atualizar apenas campos fornecidos
+        # Extrair dados de atualização
         update_data = atividade_data.model_dump(exclude_unset=True)
+
+        # Tratar ids_projetos separadamente
+        ids_projetos = update_data.pop("ids_projetos", None)
+
+        # Tratar retrocompatibilidade: id_projeto -> ids_projetos
+        id_projeto_legado = update_data.pop("id_projeto", None)
+        if ids_projetos is None and id_projeto_legado is not None:
+            ids_projetos = [id_projeto_legado]
+
+        # Atualizar relacionamentos com projetos se fornecido
+        if ids_projetos is not None:
+            self._validate_projetos(ids_projetos)
+            self._atualizar_relacionamentos_projetos(db_atividade, ids_projetos)
+
+        # Atualizar campos simples
         for field, value in update_data.items():
             setattr(db_atividade, field, value)
 
         self.db.commit()
         self.db.refresh(db_atividade)
-        return db_atividade
+
+        # Recarregar com os relacionamentos atualizados
+        return self.get_by_id(atividade_id)
 
     def delete(self, atividade_id: UUID) -> bool:
-        """Remove uma atividade. Retorna True se removida."""
+        """
+        Remove uma atividade (CASCADE remove relacionamentos automaticamente).
+
+        Args:
+            atividade_id: UUID da atividade.
+
+        Returns:
+            True se removida, False se não encontrada.
+        """
         db_atividade = self.get_by_id(atividade_id)
         if not db_atividade:
             return False

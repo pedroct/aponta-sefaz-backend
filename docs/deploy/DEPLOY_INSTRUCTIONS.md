@@ -12,9 +12,9 @@ VPS IP: **31.97.16.12** (Hostinger)
 
 ### 1. Arquivos Críticos
 - ✅ `.env` configurado com credenciais de produção
-- ✅ [nginx/nginx.conf](nginx/nginx.conf) - Domínio e CloudFlare configurados
-- ✅ [app/main.py](app/main.py) - Endpoint `/health` adicionado
-- ✅ [app/main.py](app/main.py) - CORS usando variável de ambiente
+- ✅ [nginx/nginx.conf](../../nginx/nginx.conf) - Domínio e CloudFlare configurados
+- ✅ [app/main.py](../../app/main.py) - Endpoint `/health` adicionado
+- ✅ [app/main.py](../../app/main.py) - CORS usando variável de ambiente
 - ✅ Scripts de deploy executáveis
 
 ### 2. Banco de Dados
@@ -119,7 +119,7 @@ No CloudFlare Dashboard:
 4. Descomente bloco HTTPS no `nginx.conf`
 5. Reinicie: `docker compose restart nginx`
 
-Veja detalhes em: [nginx/ssl/README.md](nginx/ssl/README.md)
+Veja detalhes em: [nginx/ssl/README.md](../../nginx/ssl/README.md)
 
 ---
 

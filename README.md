@@ -152,7 +152,7 @@ API Aponta é um backend robusto desenvolvido em FastAPI para gerenciar atividad
    - Transações ACID
    - Backups automáticos
 
-Para mais detalhes, veja [ARCHITECTURE.md](ARCHITECTURE.md).
+Para mais detalhes, veja [ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md).
 
 ---
 
@@ -226,7 +226,7 @@ Para HTTPS com CloudFlare Origin Certificate:
 
 3. Configure CloudFlare para **Full (strict)** mode
 
-Veja detalhes em: [CLOUDFLARE_SETUP.md](CLOUDFLARE_SETUP.md)
+Veja detalhes em: [CLOUDFLARE_SETUP.md](docs/deploy/CLOUDFLARE_SETUP.md)
 
 ---
 
@@ -298,7 +298,7 @@ curl https://api-aponta.pedroct.com.br/api/v1
 open https://api-aponta.pedroct.com.br/docs
 ```
 
-Guia completo: [DEPLOY_INSTRUCTIONS.md](DEPLOY_INSTRUCTIONS.md)
+Guia completo: [DEPLOY_INSTRUCTIONS.md](docs/deploy/DEPLOY_INSTRUCTIONS.md)
 
 ---
 
@@ -339,7 +339,7 @@ POST   /api/v1/projetos            # Criar novo
 - **Swagger UI:** https://api-aponta.pedroct.com.br/docs
 - **ReDoc:** https://api-aponta.pedroct.com.br/redoc
 
-Veja exemplos completos em: [API_DOCUMENTATION.md](API_DOCUMENTATION.md)
+Veja exemplos completos em: [API_DOCUMENTATION.md](docs/api/API_DOCUMENTATION.md)
 
 ---
 
@@ -391,7 +391,7 @@ Os testes rodam automaticamente no GitHub Actions em cada push:
 
 ## 🤝 Contribuindo
 
-Contribuições são bem-vindas! Por favor, leia nosso [CONTRIBUTING.md](CONTRIBUTING.md) para detalhes sobre:
+Contribuições são bem-vindas! Por favor, leia nosso [CONTRIBUTING.md](docs/contributing/CONTRIBUTING.md) para detalhes sobre:
 
 - Código de conduta
 - Processo de pull request
@@ -436,21 +436,21 @@ test: adiciona testes para atividades
 
 ### Documentação Técnica
 
-- [ARCHITECTURE.md](ARCHITECTURE.md) - Arquitetura detalhada do sistema
-- [API_DOCUMENTATION.md](API_DOCUMENTATION.md) - Documentação completa da API
-- [CONTRIBUTING.md](CONTRIBUTING.md) - Guia para contribuidores
-- [SECURITY.md](SECURITY.md) - Políticas de segurança
+- [ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md) - Arquitetura detalhada do sistema
+- [API_DOCUMENTATION.md](docs/api/API_DOCUMENTATION.md) - Documentação completa da API
+- [CONTRIBUTING.md](docs/contributing/CONTRIBUTING.md) - Guia para contribuidores
+- [SECURITY.md](docs/security/SECURITY.md) - Políticas de segurança
 
 ### Documentação de Deploy
 
-- [DEPLOY_INSTRUCTIONS.md](DEPLOY_INSTRUCTIONS.md) - Guia completo de deploy
-- [CLOUDFLARE_SETUP.md](CLOUDFLARE_SETUP.md) - Configuração do CloudFlare
-- [CLOUDFLARE_FINAL_SETUP.md](CLOUDFLARE_FINAL_SETUP.md) - Setup final SSL
+- [DEPLOY_INSTRUCTIONS.md](docs/deploy/DEPLOY_INSTRUCTIONS.md) - Guia completo de deploy
+- [CLOUDFLARE_SETUP.md](docs/deploy/CLOUDFLARE_SETUP.md) - Configuração do CloudFlare
+- [CLOUDFLARE_FINAL_SETUP.md](docs/deploy/CLOUDFLARE_FINAL_SETUP.md) - Setup final SSL
 
 ### Outros
 
-- [CHANGELOG.md](CHANGELOG.md) - Histórico de mudanças
-- [WORKSPACE_CONTEXT.md](WORKSPACE_CONTEXT.md) - Contexto do projeto
+- [CHANGELOG.md](docs/release/CHANGELOG.md) - Histórico de mudanças
+- [WORKSPACE_CONTEXT.md](docs/project/WORKSPACE_CONTEXT.md) - Contexto do projeto
 
 ---
 
@@ -462,7 +462,7 @@ Por favor, **NÃO** abra issues públicas para vulnerabilidades de segurança.
 
 Envie um email para: **security@pedroct.com.br**
 
-Veja: [SECURITY.md](SECURITY.md)
+Veja: [SECURITY.md](docs/security/SECURITY.md)
 
 ### Boas Práticas Implementadas
 

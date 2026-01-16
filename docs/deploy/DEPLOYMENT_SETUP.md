@@ -157,4 +157,4 @@ cat /root/.ssh/authorized_keys
 
 - [GitHub Actions Secrets](https://docs.github.com/en/actions/security-guides/encrypted-secrets)
 - [SSH Key Authentication](https://www.ssh.com/academy/ssh/key)
-- [Workflow Deploy](.github/workflows/deploy.yml)
+- [Workflow Deploy](../../.github/workflows/deploy.yml)
