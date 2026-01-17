@@ -1,0 +1,26 @@
+# Docker Compose para Desenvolvimento Local
+# Apenas PostgreSQL para testes
+
+services:
+  # PostgreSQL 15
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres-aponta-local
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME:-gestao_projetos}
+      POSTGRES_USER: ${DATABASE_USER:-api-aponta-user}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-api-aponta-password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_local:/var/lib/postgresql/data
+      - ./scripts/init-schema.sql:/docker-entrypoint-initdb.d/init-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER:-api-aponta-user} -d ${DATABASE_NAME:-gestao_projetos}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data_local:

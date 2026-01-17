@@ -1,5 +1,8 @@
 # Ambiente
 .env
+.env.local
+.env.backup
+.env.production
 .venv/
 venv/
 __pycache__/
@@ -33,8 +36,15 @@ mcp_config.json
 
 # Test coverage
 .coverage
+.coverage.*
 htmlcov/
 coverage.xml
 .pytest_cache/
 test-report.json
 .tox/
+
+# Temp files
+*.tmp
+server_log.txt
+openapi_test.json
+.dev.pid

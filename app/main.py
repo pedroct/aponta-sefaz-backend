@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from app.config import get_settings
-from app.routers import atividades, integracao, projetos
+from app.routers import atividades, apontamentos, integracao, projetos
 
 # Configurar logging
 logging.basicConfig(
@@ -40,6 +40,7 @@ app = FastAPI(
     ## Funcionalidades
 
     * **Atividades** - CRUD completo para gerenciamento de atividades
+    * **Apontamentos** - Registro de horas trabalhadas em work items do Azure DevOps
     """,
     version=__version__,
     docs_url="/docs",
@@ -49,7 +50,7 @@ app = FastAPI(
 )
 
 # Logging de inicialização
-logger.info(f"🚀 API Aponta inicializada - Schema: {settings.database_schema}")
+logger.info(f"API Aponta inicializada - Schema: {settings.database_schema}")
 
 # Global exception handler
 @app.exception_handler(Exception)
@@ -79,6 +80,8 @@ app.add_middleware(
 
 # Registrar routers
 app.include_router(atividades.router, prefix="/api/v1")
+
+app.include_router(apontamentos.router, prefix="/api/v1")
 
 app.include_router(integracao.router, prefix="/api/v1")
 
