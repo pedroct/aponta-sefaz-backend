@@ -1,10 +1,10 @@
 """
-Schemas Pydantic para validação de dados da entidade Apontamento.
+Schemas Pydantic para validacao de dados da entidade Apontamento.
 """
 
+import re
 from datetime import datetime, date
 from uuid import UUID
-from typing import Literal
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 
@@ -13,7 +13,7 @@ class AtividadeSimples(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-    id: UUID = Field(..., description="ID único da atividade")
+    id: UUID = Field(..., description="ID unico da atividade")
     nome: str = Field(..., description="Nome da atividade")
 
 
@@ -24,40 +24,59 @@ class ApontamentoBase(BaseModel):
         ...,
         description="Data em que o trabalho foi realizado (formato: YYYY-MM-DD)",
     )
-    horas: Literal[0, 1, 2, 3, 4, 5, 6, 7, 8] = Field(
+    duracao: str = Field(
         ...,
-        description="Quantidade de horas trabalhadas (0-8)",
-    )
-    minutos: Literal[0, 15, 30, 45] = Field(
-        ...,
-        description="Quantidade de minutos trabalhados (0, 15, 30, 45)",
+        min_length=4,
+        max_length=5,
+        description="Duracao no formato HH:mm (ex: 01:00, 02:30, 08:00). "
+        "Atalhos do frontend: +0.5h, +1h, +2h, +4h adicionam ao valor atual.",
     )
     id_atividade: UUID = Field(
         ...,
-        description="ID da atividade associada ao apontamento",
+        description="ID da atividade/tipo de atividade (ex: Documentacao, Desenvolvimento)",
     )
     comentario: str | None = Field(
         default=None,
-        max_length=100,
-        description="Comentário sobre o trabalho realizado (máx 100 caracteres)",
+        max_length=500,
+        description="Comentario sobre o trabalho realizado (max 500 caracteres)",
     )
 
-    @field_validator("horas", "minutos", mode="before")
+    @field_validator("duracao")
     @classmethod
-    def validate_time_fields(cls, v):
-        """Garante que os campos de tempo sejam inteiros."""
-        if isinstance(v, str):
-            return int(v)
-        return v
+    def validate_duracao(cls, v: str) -> str:
+        """Valida o formato da duracao (HH:mm)."""
+        if not v:
+            raise ValueError("Duracao e obrigatoria")
+
+        # Aceita formato H:mm ou HH:mm
+        pattern = r"^(\d{1,2}):([0-5]\d)$"
+        match = re.match(pattern, v)
+        if not match:
+            raise ValueError(
+                "Duracao deve estar no formato HH:mm (ex: 01:00, 02:30, 08:00)"
+            )
+
+        horas = int(match.group(1))
+        minutos = int(match.group(2))
+
+        # Validar limites razoaveis (max 24 horas)
+        if horas > 24:
+            raise ValueError("Duracao nao pode exceder 24 horas")
+
+        if horas == 0 and minutos == 0:
+            raise ValueError("Duracao deve ser maior que 00:00")
+
+        # Normalizar para formato HH:mm
+        return f"{horas:02d}:{minutos:02d}"
 
 
 class ApontamentoCreate(ApontamentoBase):
-    """Schema para criação de apontamento."""
+    """Schema para criacao de apontamento."""
 
     # Dados do Azure DevOps (enviados pelo frontend)
     work_item_id: int = Field(
         ...,
-        description="ID do Work Item no Azure DevOps",
+        description="ID do Work Item no Azure DevOps (Task ou Bug)",
     )
     project_id: str = Field(
         ...,
@@ -65,49 +84,47 @@ class ApontamentoCreate(ApontamentoBase):
         max_length=255,
         description="ID do projeto no Azure DevOps (IProjectInfo.id). "
         "Pode ser o UUID do projeto (ex: 50a9ca09-710f-4478-8278-2d069902d2af) "
-        "ou o nome do projeto (ex: 'Aponta'). Este campo NÃO é o ID do banco de dados local.",
+        "ou o nome do projeto (ex: 'Aponta'). Este campo NAO e o ID do banco de dados local.",
     )
     organization_name: str = Field(
         ...,
         min_length=1,
         max_length=255,
-        description="Nome da organização no Azure DevOps (IHostContext.name)",
+        description="Nome da organizacao no Azure DevOps (IHostContext.name)",
     )
 
-    # Dados do usuário do Azure DevOps
+    # Dados do usuario do Azure DevOps
     usuario_id: str = Field(
         ...,
         min_length=1,
         max_length=255,
-        description="ID do usuário no Azure DevOps (IUserContext.id)",
+        description="ID do usuario no Azure DevOps (IUserContext.id)",
     )
     usuario_nome: str = Field(
         ...,
         min_length=1,
         max_length=255,
-        description="Nome de exibição do usuário (IUserContext.displayName)",
+        description="Nome de exibicao do usuario (IUserContext.displayName)",
     )
     usuario_email: str | None = Field(
         default=None,
         max_length=255,
-        description="Nome de login do usuário (IUserContext.name)",
+        description="Email do usuario (IUserContext.name)",
     )
 
 
 class ApontamentoUpdate(BaseModel):
-    """Schema para atualização de apontamento (campos opcionais)."""
+    """Schema para atualizacao de apontamento (campos opcionais)."""
 
     data_apontamento: date | None = Field(
         default=None,
         description="Data em que o trabalho foi realizado",
     )
-    horas: Literal[0, 1, 2, 3, 4, 5, 6, 7, 8] | None = Field(
+    duracao: str | None = Field(
         default=None,
-        description="Quantidade de horas trabalhadas (0-8)",
-    )
-    minutos: Literal[0, 15, 30, 45] | None = Field(
-        default=None,
-        description="Quantidade de minutos trabalhados (0, 15, 30, 45)",
+        min_length=4,
+        max_length=5,
+        description="Duracao no formato HH:mm (ex: 01:00, 02:30)",
     )
     id_atividade: UUID | None = Field(
         default=None,
@@ -115,9 +132,34 @@ class ApontamentoUpdate(BaseModel):
     )
     comentario: str | None = Field(
         default=None,
-        max_length=100,
-        description="Comentário sobre o trabalho realizado (máx 100 caracteres)",
+        max_length=500,
+        description="Comentario sobre o trabalho realizado (max 500 caracteres)",
     )
+
+    @field_validator("duracao")
+    @classmethod
+    def validate_duracao(cls, v: str | None) -> str | None:
+        """Valida o formato da duracao (HH:mm) se fornecido."""
+        if v is None:
+            return None
+
+        pattern = r"^(\d{1,2}):([0-5]\d)$"
+        match = re.match(pattern, v)
+        if not match:
+            raise ValueError(
+                "Duracao deve estar no formato HH:mm (ex: 01:00, 02:30, 08:00)"
+            )
+
+        horas = int(match.group(1))
+        minutos = int(match.group(2))
+
+        if horas > 24:
+            raise ValueError("Duracao nao pode exceder 24 horas")
+
+        if horas == 0 and minutos == 0:
+            raise ValueError("Duracao deve ser maior que 00:00")
+
+        return f"{horas:02d}:{minutos:02d}"
 
 
 class ApontamentoResponse(BaseModel):
@@ -125,22 +167,21 @@ class ApontamentoResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-    id: UUID = Field(..., description="ID único do apontamento")
+    id: UUID = Field(..., description="ID unico do apontamento")
     work_item_id: int = Field(..., description="ID do Work Item no Azure DevOps")
     project_id: str = Field(..., description="ID do projeto no Azure DevOps")
-    organization_name: str = Field(..., description="Nome da organização no Azure DevOps")
+    organization_name: str = Field(..., description="Nome da organizacao no Azure DevOps")
     data_apontamento: date = Field(..., description="Data do apontamento")
-    horas: int = Field(..., description="Horas trabalhadas")
-    minutos: int = Field(..., description="Minutos trabalhados")
-    tempo_formatado: str = Field(..., description="Tempo formatado como HH:MM")
+    duracao: str = Field(..., description="Duracao no formato HH:mm")
+    duracao_horas: float = Field(..., description="Duracao em horas decimais (ex: 1.5 para 01:30)")
     id_atividade: UUID = Field(..., description="ID da atividade")
     atividade: AtividadeSimples = Field(..., description="Dados da atividade")
-    comentario: str | None = Field(default=None, description="Comentário")
-    usuario_id: str = Field(..., description="ID do usuário")
-    usuario_nome: str = Field(..., description="Nome do usuário")
-    usuario_email: str | None = Field(default=None, description="Email do usuário")
-    criado_em: datetime = Field(..., description="Data de criação")
-    atualizado_em: datetime = Field(..., description="Data da última atualização")
+    comentario: str | None = Field(default=None, description="Comentario")
+    usuario_id: str = Field(..., description="ID do usuario")
+    usuario_nome: str = Field(..., description="Nome do usuario")
+    usuario_email: str | None = Field(default=None, description="Email do usuario")
+    criado_em: datetime = Field(..., description="Data de criacao")
+    atualizado_em: datetime = Field(..., description="Data da ultima atualizacao")
 
 
 class ApontamentoListResponse(BaseModel):
@@ -148,8 +189,8 @@ class ApontamentoListResponse(BaseModel):
 
     items: list[ApontamentoResponse]
     total: int = Field(..., description="Total de registros")
-    total_horas: int = Field(..., description="Total de horas apontadas")
-    total_minutos: int = Field(..., description="Total de minutos apontados")
+    total_horas: float = Field(..., description="Total de horas apontadas (decimal)")
+    total_formatado: str = Field(..., description="Total formatado como HH:mm")
 
 
 class ApontamentoResumo(BaseModel):
@@ -157,6 +198,5 @@ class ApontamentoResumo(BaseModel):
 
     work_item_id: int = Field(..., description="ID do Work Item")
     total_apontamentos: int = Field(..., description="Quantidade de apontamentos")
-    total_horas: int = Field(..., description="Total de horas apontadas")
-    total_minutos: int = Field(..., description="Total de minutos apontados")
-    tempo_total_formatado: str = Field(..., description="Tempo total formatado (HH:MM)")
+    total_horas: float = Field(..., description="Total de horas apontadas (decimal)")
+    total_formatado: str = Field(..., description="Total formatado (HH:mm)")

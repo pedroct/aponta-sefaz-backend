@@ -1,34 +1,80 @@
 """
-Repository para operações de banco de dados da entidade Apontamento.
+Repository para operacoes de banco de dados da entidade Apontamento.
 """
 
+import re
 from uuid import UUID
 from datetime import date
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func
+from sqlalchemy import func, cast, Integer
 from app.models.apontamento import Apontamento
 from app.models.atividade import Atividade
 from app.schemas.apontamento import ApontamentoCreate, ApontamentoUpdate
 
 
+def parse_duracao(duracao: str) -> tuple[int, int]:
+    """
+    Converte duracao no formato HH:mm para tupla (horas, minutos).
+
+    Args:
+        duracao: String no formato HH:mm (ex: "01:30", "08:00").
+
+    Returns:
+        Tupla (horas, minutos).
+    """
+    match = re.match(r"^(\d{1,2}):(\d{2})$", duracao)
+    if match:
+        return int(match.group(1)), int(match.group(2))
+    return 0, 0
+
+
+def duracao_to_decimal(duracao: str) -> float:
+    """
+    Converte duracao no formato HH:mm para horas decimais.
+
+    Args:
+        duracao: String no formato HH:mm (ex: "01:30" -> 1.5).
+
+    Returns:
+        Horas em formato decimal.
+    """
+    horas, minutos = parse_duracao(duracao)
+    return horas + (minutos / 60)
+
+
+def format_duracao(total_minutos: int) -> str:
+    """
+    Formata total de minutos para HH:mm.
+
+    Args:
+        total_minutos: Total em minutos.
+
+    Returns:
+        String no formato HH:mm.
+    """
+    horas = total_minutos // 60
+    minutos = total_minutos % 60
+    return f"{horas:02d}:{minutos:02d}"
+
+
 class ApontamentoRepository:
-    """Repository para operações CRUD de Apontamento."""
+    """Repository para operacoes CRUD de Apontamento."""
 
     def __init__(self, db: Session):
         self.db = db
 
     def _validate_atividade(self, id_atividade: UUID) -> bool:
         """
-        Valida se a atividade existe e está ativa.
+        Valida se a atividade existe e esta ativa.
 
         Args:
             id_atividade: UUID da atividade.
 
         Returns:
-            True se a atividade existe e está ativa.
+            True se a atividade existe e esta ativa.
 
         Raises:
-            ValueError: Se a atividade não existir ou estiver inativa.
+            ValueError: Se a atividade nao existir ou estiver inativa.
         """
         atividade = (
             self.db.query(Atividade)
@@ -37,7 +83,7 @@ class ApontamentoRepository:
         )
 
         if not atividade:
-            raise ValueError(f"Atividade não encontrada: {id_atividade}")
+            raise ValueError(f"Atividade nao encontrada: {id_atividade}")
 
         if not atividade.ativo:
             raise ValueError(f"Atividade inativa: {id_atividade}")
@@ -52,10 +98,10 @@ class ApontamentoRepository:
             apontamento_data: Objeto Pydantic com os dados do novo apontamento.
 
         Returns:
-            O objeto Apontamento recém-criado e persistido.
+            O objeto Apontamento recem-criado e persistido.
 
         Raises:
-            ValueError: Se a atividade não existir ou estiver inativa.
+            ValueError: Se a atividade nao existir ou estiver inativa.
         """
         # Validar atividade
         self._validate_atividade(apontamento_data.id_atividade)
@@ -71,14 +117,14 @@ class ApontamentoRepository:
 
     def get_by_id(self, apontamento_id: UUID) -> Apontamento | None:
         """
-        Busca um apontamento específico pelo seu ID único.
+        Busca um apontamento especifico pelo seu ID unico.
         Realiza eager loading da atividade relacionada.
 
         Args:
             apontamento_id: UUID do apontamento.
 
         Returns:
-            Objeto Apontamento ou None se não encontrado.
+            Objeto Apontamento ou None se nao encontrado.
         """
         return (
             self.db.query(Apontamento)
@@ -96,14 +142,14 @@ class ApontamentoRepository:
         limit: int = 100,
     ) -> tuple[list[Apontamento], int]:
         """
-        Lista apontamentos de um work item específico com paginação.
+        Lista apontamentos de um work item especifico com paginacao.
 
         Args:
             work_item_id: ID do work item no Azure DevOps.
-            organization_name: Nome da organização no Azure DevOps.
+            organization_name: Nome da organizacao no Azure DevOps.
             project_id: ID do projeto no Azure DevOps.
-            skip: Número de registros a pular (paginação).
-            limit: Máximo de registros a retornar.
+            skip: Numero de registros a pular (paginacao).
+            limit: Maximo de registros a retornar.
 
         Returns:
             Tupla (lista de apontamentos, total de registros).
@@ -118,10 +164,10 @@ class ApontamentoRepository:
             )
         )
 
-        # Contar total antes de paginação
+        # Contar total antes de paginacao
         total = query.count()
 
-        # Aplicar paginação e ordenação (mais recente primeiro)
+        # Aplicar paginacao e ordenacao (mais recente primeiro)
         apontamentos = (
             query.order_by(Apontamento.data_apontamento.desc(), Apontamento.criado_em.desc())
             .offset(skip)
@@ -136,32 +182,71 @@ class ApontamentoRepository:
         work_item_id: int,
         organization_name: str,
         project_id: str,
-    ) -> tuple[int, int]:
+    ) -> float:
         """
-        Retorna o total de horas e minutos apontados para um work item.
+        Retorna o total de horas apontadas para um work item.
 
         Args:
             work_item_id: ID do work item no Azure DevOps.
-            organization_name: Nome da organização no Azure DevOps.
+            organization_name: Nome da organizacao no Azure DevOps.
             project_id: ID do projeto no Azure DevOps.
 
         Returns:
-            Tupla (total de horas, total de minutos).
+            Total de horas em formato decimal.
         """
-        result = (
-            self.db.query(
-                func.coalesce(func.sum(Apontamento.horas), 0).label("total_horas"),
-                func.coalesce(func.sum(Apontamento.minutos), 0).label("total_minutos"),
-            )
+        apontamentos = (
+            self.db.query(Apontamento.duracao)
             .filter(
                 Apontamento.work_item_id == work_item_id,
                 Apontamento.organization_name == organization_name,
                 Apontamento.project_id == project_id,
             )
-            .first()
+            .all()
         )
 
-        return int(result.total_horas), int(result.total_minutos)
+        total_minutos = sum(
+            parse_duracao(apt.duracao)[0] * 60 + parse_duracao(apt.duracao)[1]
+            for apt in apontamentos
+        )
+
+        return total_minutos / 60  # Retorna em horas decimais
+
+    def get_totals_formatted_by_work_item(
+        self,
+        work_item_id: int,
+        organization_name: str,
+        project_id: str,
+    ) -> tuple[float, str]:
+        """
+        Retorna o total de horas apontadas e formatado para um work item.
+
+        Args:
+            work_item_id: ID do work item no Azure DevOps.
+            organization_name: Nome da organizacao no Azure DevOps.
+            project_id: ID do projeto no Azure DevOps.
+
+        Returns:
+            Tupla (total em horas decimais, total formatado HH:mm).
+        """
+        apontamentos = (
+            self.db.query(Apontamento.duracao)
+            .filter(
+                Apontamento.work_item_id == work_item_id,
+                Apontamento.organization_name == organization_name,
+                Apontamento.project_id == project_id,
+            )
+            .all()
+        )
+
+        total_minutos = sum(
+            parse_duracao(apt.duracao)[0] * 60 + parse_duracao(apt.duracao)[1]
+            for apt in apontamentos
+        )
+
+        total_horas = total_minutos / 60
+        total_formatado = format_duracao(total_minutos)
+
+        return total_horas, total_formatado
 
     def get_all(
         self,
@@ -172,12 +257,12 @@ class ApontamentoRepository:
         data_fim: date | None = None,
     ) -> tuple[list[Apontamento], int]:
         """
-        Lista apontamentos com paginação e filtros opcionais.
+        Lista apontamentos com paginacao e filtros opcionais.
 
         Args:
-            skip: Número de registros a pular (paginação).
-            limit: Máximo de registros a retornar.
-            usuario_id: Filtrar por usuário.
+            skip: Numero de registros a pular (paginacao).
+            limit: Maximo de registros a retornar.
+            usuario_id: Filtrar por usuario.
             data_inicio: Data inicial do filtro.
             data_fim: Data final do filtro.
 
@@ -196,10 +281,10 @@ class ApontamentoRepository:
         if data_fim:
             query = query.filter(Apontamento.data_apontamento <= data_fim)
 
-        # Contar total antes de paginação
+        # Contar total antes de paginacao
         total = query.count()
 
-        # Aplicar paginação e ordenação
+        # Aplicar paginacao e ordenacao
         apontamentos = (
             query.order_by(Apontamento.data_apontamento.desc(), Apontamento.criado_em.desc())
             .offset(skip)
@@ -217,19 +302,19 @@ class ApontamentoRepository:
 
         Args:
             apontamento_id: UUID do apontamento.
-            apontamento_data: Dados para atualização.
+            apontamento_data: Dados para atualizacao.
 
         Returns:
-            Apontamento atualizado ou None se não encontrado.
+            Apontamento atualizado ou None se nao encontrado.
 
         Raises:
-            ValueError: Se a nova atividade não existir ou estiver inativa.
+            ValueError: Se a nova atividade nao existir ou estiver inativa.
         """
         db_apontamento = self.get_by_id(apontamento_id)
         if not db_apontamento:
             return None
 
-        # Extrair dados de atualização
+        # Extrair dados de atualizacao
         update_data = apontamento_data.model_dump(exclude_unset=True)
 
         # Validar nova atividade se fornecida
@@ -253,7 +338,7 @@ class ApontamentoRepository:
             apontamento_id: UUID do apontamento.
 
         Returns:
-            True se removido, False se não encontrado.
+            True se removido, False se nao encontrado.
         """
         db_apontamento = self.get_by_id(apontamento_id)
         if not db_apontamento:

@@ -3,8 +3,9 @@ Modelo SQLAlchemy para a entidade Apontamento (Registro de Horas).
 """
 
 import uuid
+import re
 from datetime import datetime, date
-from sqlalchemy import Column, String, Text, DateTime, Date, Integer, ForeignKey
+from sqlalchemy import Column, String, DateTime, Date, Integer, ForeignKey
 from sqlalchemy.orm import relationship
 from app.models.custom_types import GUID
 from app.database import Base
@@ -49,34 +50,27 @@ class Apontamento(Base):
         comment="Data em que o trabalho foi realizado",
     )
 
-    # Horas trabalhadas (0-8)
-    horas = Column(
-        Integer,
+    # Duração no formato HH:mm (ex: "01:00", "02:30", "08:00")
+    duracao = Column(
+        String(5),
         nullable=False,
-        comment="Quantidade de horas trabalhadas (0-8)",
+        comment="Duracao no formato HH:mm (ex: 01:00, 02:30)",
     )
 
-    # Minutos trabalhados (00, 15, 30, 45)
-    minutos = Column(
-        Integer,
-        nullable=False,
-        comment="Quantidade de minutos trabalhados (0, 15, 30, 45)",
-    )
-
-    # Atividade relacionada
+    # Atividade relacionada (Tipo de Atividade: Documentação, Desenvolvimento, etc.)
     id_atividade = Column(
         GUID(),
         ForeignKey("atividades.id", ondelete="RESTRICT"),
         nullable=False,
         index=True,
-        comment="ID da atividade associada",
+        comment="ID da atividade associada (Tipo de Atividade)",
     )
 
     # Comentário opcional
     comentario = Column(
-        String(100),
+        String(500),
         nullable=True,
-        comment="Comentário sobre o trabalho realizado (máx 100 caracteres)",
+        comment="Comentario sobre o trabalho realizado (max 500 caracteres)",
     )
 
     # Dados do usuário que criou o apontamento (do Azure DevOps SDK)
@@ -84,19 +78,19 @@ class Apontamento(Base):
         String(255),
         nullable=False,
         index=True,
-        comment="ID do usuário no Azure DevOps (IUserContext.id)",
+        comment="ID do usuario no Azure DevOps (IUserContext.id)",
     )
 
     usuario_nome = Column(
         String(255),
         nullable=False,
-        comment="Nome de exibição do usuário (IUserContext.displayName)",
+        comment="Nome de exibicao do usuario (IUserContext.displayName)",
     )
 
     usuario_email = Column(
         String(255),
         nullable=True,
-        comment="Nome de login do usuário (IUserContext.name)",
+        comment="Email do usuario (IUserContext.name)",
     )
 
     # Timestamps
@@ -109,14 +103,28 @@ class Apontamento(Base):
     atividade = relationship("Atividade", lazy="joined")
 
     @property
-    def tempo_total_minutos(self) -> int:
-        """Retorna o tempo total em minutos."""
-        return (self.horas * 60) + self.minutos
+    def duracao_horas(self) -> float:
+        """Retorna a duracao em horas decimais (ex: 1.5 para 01:30)."""
+        if not self.duracao:
+            return 0.0
+        match = re.match(r"^(\d{1,2}):(\d{2})$", self.duracao)
+        if match:
+            horas = int(match.group(1))
+            minutos = int(match.group(2))
+            return horas + (minutos / 60)
+        return 0.0
 
     @property
-    def tempo_formatado(self) -> str:
-        """Retorna o tempo formatado como HH:MM."""
-        return f"{self.horas:02d}:{self.minutos:02d}"
+    def duracao_minutos(self) -> int:
+        """Retorna a duracao total em minutos."""
+        if not self.duracao:
+            return 0
+        match = re.match(r"^(\d{1,2}):(\d{2})$", self.duracao)
+        if match:
+            horas = int(match.group(1))
+            minutos = int(match.group(2))
+            return (horas * 60) + minutos
+        return 0
 
     def __repr__(self) -> str:
-        return f"<Apontamento(id={self.id}, work_item={self.work_item_id}, tempo={self.tempo_formatado})>"
+        return f"<Apontamento(id={self.id}, work_item={self.work_item_id}, duracao={self.duracao})>"
