@@ -11,7 +11,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from app.config import get_settings
-from app.routers import atividades, apontamentos, integracao, projetos
+from app.routers import atividades, apontamentos, integracao, projetos, user, work_items, timesheet
+from app.services.seed import ensure_seed_data
 
 # Configurar logging
 logging.basicConfig(
@@ -26,6 +27,7 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: as migrações são executadas pelo scripts/start.sh
+    ensure_seed_data()
     yield
 
 
@@ -86,6 +88,12 @@ app.include_router(apontamentos.router, prefix="/api/v1")
 app.include_router(integracao.router, prefix="/api/v1")
 
 app.include_router(projetos.router)
+
+app.include_router(user.router, prefix="/api/v1")
+
+app.include_router(work_items.router, prefix="/api/v1")
+
+app.include_router(timesheet.router, prefix="/api/v1")
 
 
 @app.get(

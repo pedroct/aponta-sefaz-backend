@@ -1,5 +1,7 @@
 # Guia de Contribuição
 
+**Última atualização:** 2026-01-18
+
 Obrigado por considerar contribuir com a API Aponta! Este documento fornece diretrizes para contribuir com o projeto.
 
 ## 📋 Índice
@@ -154,7 +156,7 @@ pip install -r requirements.txt
 pip install pytest pytest-asyncio pytest-cov black isort flake8 mypy
 
 # Configure o banco (PostgreSQL deve estar rodando)
-export DATABASE_URL="postgresql://user:pass@localhost:5432/aponta_db"
+export DATABASE_URL="postgresql://user:pass@localhost:5432/gestao_projetos"
 
 # Execute migrations
 alembic upgrade head

@@ -1,0 +1,50 @@
+# Docker Compose - Staging (Homologação)
+# Domínio: staging-aponta.treit.com.br
+# Schema: aponta_sefaz_staging
+
+services:
+  # API FastAPI - Staging
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: api-aponta-staging
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - ENVIRONMENT=staging
+      - API_DEBUG=true
+      - TZ=America/Fortaleza
+    networks:
+      - aponta-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend React - Staging
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=/api/v1
+        - VITE_AZURE_ORG=sefaz-ceara-lab
+        - VITE_AZURE_PROJECT=DEV
+    container_name: fe-aponta-staging
+    restart: unless-stopped
+    networks:
+      - aponta-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  aponta-network:
+    external: true
+    name: aponta-shared-network

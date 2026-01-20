@@ -112,3 +112,19 @@ class AtividadeListResponse(BaseModel):
 
     items: list[AtividadeResponse]
     total: int = Field(..., description="Total de registros")
+
+
+class AtividadeCatalogItem(BaseModel):
+    """Schema de atividade para catálogo do frontend."""
+
+    id: str = Field(..., description="ID da atividade")
+    nome: str = Field(..., description="Nome da atividade")
+    descricao: str | None = Field(default=None, description="Descrição da atividade")
+    ativo: bool = Field(..., description="Status ativo/inativo")
+    order: int | None = Field(default=None, description="Ordem de exibição")
+
+
+class AtividadeCatalogResponse(BaseModel):
+    """Resposta de catálogo de atividades para o frontend."""
+
+    items: list[AtividadeCatalogItem]

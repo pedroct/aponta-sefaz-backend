@@ -1,5 +1,7 @@
 # Configuração CloudFlare - API Aponta
 
+**Última atualização:** 2026-01-18
+
 ## Informações do Domínio
 - **Domínio:** api-aponta.pedroct.com.br
 - **VPS IP:** 31.97.16.12 (Hostinger)
@@ -31,7 +33,7 @@ nslookup api-aponta.pedroct.com.br
 ## SSL/TLS Configuration
 
 ### Opção 1: Flexible (Início Rápido) ⚡
-**Recomendado para começar**
+**Somente para testes iniciais**
 
 **No CloudFlare Dashboard:**
 1. Vá em: `SSL/TLS` → `Overview`
@@ -85,7 +87,7 @@ chmod 600 nginx/ssl/privkey.pem
 # 3. Edite o nginx.conf
 nano nginx/nginx.conf
 
-# 4. Descomente o bloco HTTPS (linhas 84-96)
+# 4. Descomente o bloco HTTPS no nginx.conf
 # E altere o server_name para: api-aponta.pedroct.com.br
 
 # 5. Reinicie o Nginx

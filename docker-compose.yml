@@ -30,13 +30,14 @@ services:
       dockerfile: Dockerfile
     container_name: api-aponta
     restart: unless-stopped
-    expose:
-      - "8000"
+    ports:
+      - "8000:8000"
     env_file:
       - .env
     environment:
       - ENVIRONMENT=production
       - API_DEBUG=false
+      - TZ=America/Fortaleza
     depends_on:
       postgres:
         condition: service_healthy
@@ -55,9 +56,10 @@ services:
     container_name: postgres-aponta
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DATABASE_NAME:-aponta_db}
+      POSTGRES_DB: ${DATABASE_NAME:-gestao_projetos}
       POSTGRES_USER: ${DATABASE_USER:-postgres}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-postgres}
+      TZ: America/Fortaleza
     ports:
       - "5432:5432"
     volumes:
@@ -65,7 +67,7 @@ services:
     networks:
       - aponta-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER:-postgres} -d ${DATABASE_NAME:-aponta_db}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER:-postgres} -d ${DATABASE_NAME:-gestao_projetos}"]
       interval: 10s
       timeout: 5s
       retries: 5

@@ -113,20 +113,13 @@ def resumo_apontamentos_work_item(
     service: ApontamentoService = Depends(get_service),
 ) -> ApontamentoResumo:
     """Endpoint para obter resumo de apontamentos de um work item."""
-    _, total, total_horas, total_formatado = service.listar_por_work_item(
+    resumo = service.resumo_por_work_item(
         work_item_id=work_item_id,
         organization_name=organization_name,
         project_id=project_id,
-        skip=0,
-        limit=1,
     )
 
-    return ApontamentoResumo(
-        work_item_id=work_item_id,
-        total_apontamentos=total,
-        total_horas=total_horas,
-        total_formatado=total_formatado,
-    )
+    return ApontamentoResumo(**resumo)
 
 
 @router.get(

@@ -4,7 +4,7 @@
 
 Version: 0.1.0
 Base URL: `https://api-aponta.pedroct.com.br`
-Last Updated: 2026-01-12
+Last Updated: 2026-01-18
 
 ---
 
@@ -20,6 +20,9 @@ Last Updated: 2026-01-12
 - [Atividades Endpoints](#atividades-endpoints)
 - [Projetos Endpoints](#projetos-endpoints)
 - [Integração Endpoints](#integração-endpoints)
+- [Apontamentos Endpoints](#apontamentos-endpoints)
+- [Work Items Endpoints](#work-items-endpoints)
+- [User Endpoints](#user-endpoints)
 - [Error Handling](#error-handling)
 - [Interactive Documentation](#interactive-documentation)
 - [SDK and Code Examples](#sdk-and-code-examples)
@@ -38,6 +41,9 @@ API Aponta is a RESTful API for managing activities and projects with Azure DevO
 - Comprehensive error messages
 - Automatic OpenAPI documentation
 - CORS support for web applications
+- Timesheet (apontamentos) management with Azure DevOps sync
+- Work items search (ID/title)
+- Authenticated user profile endpoint
 - Rate limiting for abuse prevention
 - Health monitoring endpoints
 
@@ -169,8 +175,11 @@ Full Base: https://api-aponta.pedroct.com.br/api/v1
 /redoc                      # ReDoc documentation
 
 /api/v1/atividades          # Activities resource
+/api/v1/apontamentos        # Timesheets resource
 /api/v1/projetos            # Projects resource
 /api/v1/integracao          # Integration endpoints
+/api/v1/work-items          # Work Items search
+/api/v1/user                # Authenticated user
 ```
 
 ---
@@ -297,6 +306,9 @@ GET /api/v1/atividades?skip=0&limit=50
   ],
   "total": 150
 }
+  **Nota**: Atividades possuem relação N:N com projetos. Use `ids_projetos` (lista) nos requests de criação/atualização. O campo `id_projeto` ainda é aceito por retrocompatibilidade. As respostas incluem `projetos` e também `id_projeto`/`nome_projeto` para compatibilidade.
+
+
 ```
 
 ### Response Fields
@@ -417,8 +429,9 @@ interface Atividade {
   nome: string;               // 1-255 characters
   descricao: string | null;   // Optional description
   ativo: boolean;             // Active status
-  id_projeto: string;         // UUID - Project reference
-  nome_projeto: string | null; // Joined from projects table
+  projetos: { id: string; nome: string }[]; // Associated projects
+  id_projeto?: string;         // UUID - Legacy project reference
+  nome_projeto?: string | null; // Legacy project name
   criado_em: string;          // ISO 8601 timestamp (UTC)
   atualizado_em: string;      // ISO 8601 timestamp (UTC)
 }
@@ -457,6 +470,12 @@ curl -X GET \
       "nome": "Desenvolvimento da API",
       "descricao": "Implementar endpoints REST para gestão de atividades",
       "ativo": true,
+      "projetos": [
+        {
+          "id": "660e8400-e29b-41d4-a716-446655440001",
+          "nome": "API Aponta"
+        }
+      ],
       "id_projeto": "660e8400-e29b-41d4-a716-446655440001",
       "nome_projeto": "API Aponta",
       "criado_em": "2026-01-10T10:00:00.000Z",
@@ -467,6 +486,12 @@ curl -X GET \
       "nome": "Configuração do banco de dados",
       "descricao": "Setup do PostgreSQL e migrations",
       "ativo": true,
+      "projetos": [
+        {
+          "id": "660e8400-e29b-41d4-a716-446655440001",
+          "nome": "API Aponta"
+        }
+      ],
       "id_projeto": "660e8400-e29b-41d4-a716-446655440001",
       "nome_projeto": "API Aponta",
       "criado_em": "2026-01-09T08:00:00.000Z",
@@ -510,6 +535,12 @@ curl -X GET \
   "nome": "Desenvolvimento da API",
   "descricao": "Implementar endpoints REST para gestão de atividades",
   "ativo": true,
+  "projetos": [
+    {
+      "id": "660e8400-e29b-41d4-a716-446655440001",
+      "nome": "API Aponta"
+    }
+  ],
   "id_projeto": "660e8400-e29b-41d4-a716-446655440001",
   "nome_projeto": "API Aponta",
   "criado_em": "2026-01-10T10:00:00.000Z",
@@ -544,7 +575,7 @@ Create a new activity.
   "nome": "Nova Atividade",
   "descricao": "Descrição detalhada da atividade",
   "ativo": true,
-  "id_projeto": "660e8400-e29b-41d4-a716-446655440001"
+  "ids_projetos": ["660e8400-e29b-41d4-a716-446655440001"]
 }
 ```
 
@@ -555,7 +586,8 @@ Create a new activity.
 | nome | string | Yes | 1-255 characters |
 | descricao | string | No | Any length or null |
 | ativo | boolean | No | Default: true |
-| id_projeto | UUID | Yes | Must be valid project ID |
+| ids_projetos | UUID[] | Yes | Minimum 1 project ID |
+| id_projeto | UUID | No | Legacy single project ID |
 
 **Example Request**:
 ```bash
@@ -566,7 +598,7 @@ curl -X POST \
     "nome": "Implementar autenticação",
     "descricao": "Adicionar autenticação Azure DevOps",
     "ativo": true,
-    "id_projeto": "660e8400-e29b-41d4-a716-446655440001"
+    "ids_projetos": ["660e8400-e29b-41d4-a716-446655440001"]
   }' \
   "https://api-aponta.pedroct.com.br/api/v1/atividades"
 ```
@@ -578,6 +610,12 @@ curl -X POST \
   "nome": "Implementar autenticação",
   "descricao": "Adicionar autenticação Azure DevOps",
   "ativo": true,
+  "projetos": [
+    {
+      "id": "660e8400-e29b-41d4-a716-446655440001",
+      "nome": "API Aponta"
+    }
+  ],
   "id_projeto": "660e8400-e29b-41d4-a716-446655440001",
   "nome_projeto": "API Aponta",
   "criado_em": "2026-01-12T16:00:00.000Z",
@@ -630,7 +668,7 @@ Update an existing activity. All fields are optional.
   "nome": "Nome atualizado",
   "descricao": "Nova descrição",
   "ativo": false,
-  "id_projeto": "660e8400-e29b-41d4-a716-446655440002"
+  "ids_projetos": ["660e8400-e29b-41d4-a716-446655440002"]
 }
 ```
 
@@ -653,6 +691,12 @@ curl -X PUT \
   "nome": "Implementar autenticação JWT",
   "descricao": "Adicionar autenticação Azure DevOps",
   "ativo": false,
+  "projetos": [
+    {
+      "id": "660e8400-e29b-41d4-a716-446655440001",
+      "nome": "API Aponta"
+    }
+  ],
   "id_projeto": "660e8400-e29b-41d4-a716-446655440001",
   "nome_projeto": "API Aponta",
   "criado_em": "2026-01-12T16:00:00.000Z",
@@ -734,17 +778,25 @@ curl -X GET \
 [
   {
     "id": "660e8400-e29b-41d4-a716-446655440001",
+    "external_id": "12345678-1234-1234-1234-123456789012",
     "nome": "API Aponta",
-    "azure_project_id": "12345678-1234-1234-1234-123456789012",
-    "criado_em": "2026-01-01T00:00:00.000Z",
-    "atualizado_em": "2026-01-10T12:00:00.000Z"
+    "descricao": "Backend API for Azure DevOps extension",
+    "url": "https://dev.azure.com/myorg/_apis/projects/12345678-1234-1234-1234-123456789012",
+    "estado": "wellFormed",
+    "last_sync_at": "2026-01-18T12:00:00.000Z",
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "updated_at": "2026-01-18T12:00:00.000Z"
   },
   {
     "id": "660e8400-e29b-41d4-a716-446655440002",
+    "external_id": "87654321-4321-4321-4321-210987654321",
     "nome": "Frontend Dashboard",
-    "azure_project_id": "87654321-4321-4321-4321-210987654321",
-    "criado_em": "2025-12-15T00:00:00.000Z",
-    "atualizado_em": "2026-01-05T09:30:00.000Z"
+    "descricao": "Web dashboard for project management",
+    "url": "https://dev.azure.com/myorg/_apis/projects/87654321-4321-4321-4321-210987654321",
+    "estado": "wellFormed",
+    "last_sync_at": "2026-01-18T12:00:00.000Z",
+    "created_at": "2025-12-15T00:00:00.000Z",
+    "updated_at": "2026-01-18T12:00:00.000Z"
   }
 ]
 ```
@@ -773,12 +825,10 @@ curl -X POST \
 **Example Response** (200 OK):
 ```json
 {
-  "status": "success",
-  "message": "Sincronização concluída com sucesso",
-  "projects_synced": 5,
-  "projects_created": 2,
-  "projects_updated": 3,
-  "timestamp": "2026-01-12T16:30:00.000Z"
+  "total_azure": 5,
+  "synced": 5,
+  "created": 2,
+  "updated": 3
 }
 ```
 
@@ -857,6 +907,198 @@ curl -X GET \
 
 **Token Permission Requirements**:
 - Project and Team: Read
+
+---
+
+## Apontamentos Endpoints
+
+Timesheet endpoints for registering worked hours and syncing with Azure DevOps.
+
+---
+
+### POST /api/v1/apontamentos
+
+Create a new apontamento (worked hours record).
+
+**Authentication**: Required
+
+**Request Body**:
+```json
+{
+  "work_item_id": 12345,
+  "project_id": "50a9ca09-710f-4478-8278-2d069902d2af",
+  "organization_name": "my-org",
+  "usuario_id": "00000000-0000-0000-0000-000000000000",
+  "usuario_nome": "Pedro CT",
+  "usuario_email": "pedro@example.com",
+  "data_apontamento": "2026-01-18",
+  "duracao": "02:30",
+  "id_atividade": "770e8400-e29b-41d4-a716-446655440003",
+  "comentario": "Implementação de endpoint"
+}
+```
+
+**Example Response** (201 Created):
+```json
+{
+  "id": "dd0f1133-3f54-4c6a-9b86-53b5b6a3c7f1",
+  "work_item_id": 12345,
+  "project_id": "50a9ca09-710f-4478-8278-2d069902d2af",
+  "organization_name": "my-org",
+  "data_apontamento": "2026-01-18",
+  "duracao": "02:30",
+  "duracao_horas": 2.5,
+  "id_atividade": "770e8400-e29b-41d4-a716-446655440003",
+  "atividade": {
+    "id": "770e8400-e29b-41d4-a716-446655440003",
+    "nome": "Desenvolvimento"
+  },
+  "comentario": "Implementação de endpoint",
+  "usuario_id": "00000000-0000-0000-0000-000000000000",
+  "usuario_nome": "Pedro CT",
+  "usuario_email": "pedro@example.com",
+  "criado_em": "2026-01-18T12:00:00Z",
+  "atualizado_em": "2026-01-18T12:00:00Z"
+}
+```
+
+---
+
+### GET /api/v1/apontamentos/work-item/{work_item_id}
+
+List apontamentos for a specific work item.
+
+**Query Parameters**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| organization_name | string | Yes | Azure DevOps organization name |
+| project_id | string | Yes | Azure DevOps project ID or name |
+| skip | integer | No | Records to skip (default 0) |
+| limit | integer | No | Max records (default 100) |
+
+**Example Response** (200 OK):
+```json
+{
+  "items": [
+    {
+      "id": "dd0f1133-3f54-4c6a-9b86-53b5b6a3c7f1",
+      "work_item_id": 12345,
+      "project_id": "50a9ca09-710f-4478-8278-2d069902d2af",
+      "organization_name": "my-org",
+      "data_apontamento": "2026-01-18",
+      "duracao": "02:30",
+      "duracao_horas": 2.5,
+      "id_atividade": "770e8400-e29b-41d4-a716-446655440003",
+      "atividade": { "id": "770e8400-e29b-41d4-a716-446655440003", "nome": "Desenvolvimento" },
+      "comentario": "Implementação de endpoint",
+      "usuario_id": "00000000-0000-0000-0000-000000000000",
+      "usuario_nome": "Pedro CT",
+      "usuario_email": "pedro@example.com",
+      "criado_em": "2026-01-18T12:00:00Z",
+      "atualizado_em": "2026-01-18T12:00:00Z"
+    }
+  ],
+  "total": 1,
+  "total_horas": 2.5,
+  "total_formatado": "02:30"
+}
+```
+
+---
+
+### GET /api/v1/apontamentos/work-item/{work_item_id}/resumo
+
+Returns summary totals for a specific work item.
+
+**Query Parameters**: `organization_name`, `project_id`
+
+---
+
+### GET /api/v1/apontamentos/work-item/{work_item_id}/azure-info
+
+Fetches work item time fields directly from Azure DevOps.
+
+**Query Parameters**: `organization_name`, `project_id`
+
+---
+
+### GET /api/v1/apontamentos/{apontamento_id}
+
+Get an apontamento by ID.
+
+---
+
+### PUT /api/v1/apontamentos/{apontamento_id}
+
+Update an apontamento (data, duration, activity, comment).
+
+---
+
+### DELETE /api/v1/apontamentos/{apontamento_id}
+
+Delete an apontamento and recalculate Azure DevOps work item time.
+
+---
+
+## Work Items Endpoints
+
+Search work items in Azure DevOps.
+
+---
+
+### GET /api/v1/work-items/search
+
+Search work items by ID or title.
+
+**Query Parameters**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| query | string | Yes | Text or ID to search (min 2 chars) |
+| project_id | string | No | Azure DevOps project ID or name |
+| organization_name | string | No | Azure DevOps organization name |
+| limit | integer | No | Max results (1-50) |
+
+**Example Response** (200 OK):
+```json
+{
+  "results": [
+    {
+      "id": 12345,
+      "title": "Corrigir validação do formulário",
+      "type": "Task",
+      "project": "API Aponta",
+      "url": "https://dev.azure.com/myorg/Project/_workitems/edit/12345",
+      "originalEstimate": 8,
+      "completedWork": 2,
+      "remainingWork": 6,
+      "state": "Active"
+    }
+  ],
+  "count": 1
+}
+```
+
+---
+
+## User Endpoints
+
+Authenticated user profile.
+
+---
+
+### GET /api/v1/user
+
+Returns the authenticated user profile from Azure DevOps.
+
+**Example Response** (200 OK):
+```json
+{
+  "id": "00000000-0000-0000-0000-000000000000",
+  "displayName": "Pedro CT",
+  "emailAddress": "pedro@example.com",
+  "avatarUrl": null
+}
+```
 
 ---
 

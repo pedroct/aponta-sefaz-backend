@@ -2,7 +2,7 @@
 
 ## ✅ Status: Certificados Instalados e HTTPS Configurado
 
-Data: 2026-01-12
+Data: 2026-01-18
 Domínio: **api-aponta.pedroct.com.br**
 VPS IP: **31.97.16.12**
 

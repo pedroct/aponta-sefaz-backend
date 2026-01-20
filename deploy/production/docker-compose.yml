@@ -1,0 +1,50 @@
+# Docker Compose - Produção
+# Domínio: aponta.treit.com.br
+# Schema: aponta_sefaz
+
+services:
+  # API FastAPI - Produção
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: api-aponta-prod
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - ENVIRONMENT=production
+      - API_DEBUG=false
+      - TZ=America/Fortaleza
+    networks:
+      - aponta-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend React - Produção
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=/api/v1
+        - VITE_AZURE_ORG=sefaz-ceara
+        - VITE_AZURE_PROJECT=
+    container_name: fe-aponta-prod
+    restart: unless-stopped
+    networks:
+      - aponta-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  aponta-network:
+    external: true
+    name: aponta-shared-network

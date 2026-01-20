@@ -5,7 +5,8 @@ Schemas Pydantic para validacao de dados da entidade Apontamento.
 import re
 from datetime import datetime, date
 from uuid import UUID
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+from pydantic import BaseModel, Field, ConfigDict, field_validator, field_serializer
+import pytz
 
 
 class AtividadeSimples(BaseModel):
@@ -162,6 +163,10 @@ class ApontamentoUpdate(BaseModel):
         return f"{horas:02d}:{minutos:02d}"
 
 
+
+from pydantic import field_serializer
+import pytz
+
 class ApontamentoResponse(BaseModel):
     """Schema de resposta com todos os campos."""
 
@@ -183,6 +188,26 @@ class ApontamentoResponse(BaseModel):
     criado_em: datetime = Field(..., description="Data de criacao")
     atualizado_em: datetime = Field(..., description="Data da ultima atualizacao")
 
+    @field_serializer("criado_em", "atualizado_em")
+    def serialize_datetime(self, value, _info):
+        if value is None:
+            return None
+        utc = pytz.utc
+        fortaleza = pytz.timezone("America/Fortaleza")
+        if value.tzinfo is None:
+            value = utc.localize(value)
+        return value.astimezone(fortaleza).isoformat()
+
+    @field_serializer("criado_em", "atualizado_em")
+    def serialize_datetime(self, value, _info):
+        if value is None:
+            return None
+        utc = pytz.utc
+        fortaleza = pytz.timezone("America/Fortaleza")
+        if value.tzinfo is None:
+            value = utc.localize(value)
+        return value.astimezone(fortaleza).isoformat()
+
 
 class ApontamentoListResponse(BaseModel):
     """Schema de resposta para listagem de apontamentos."""
@@ -193,10 +218,40 @@ class ApontamentoListResponse(BaseModel):
     total_formatado: str = Field(..., description="Total formatado como HH:mm")
 
 
+class ResumoPorAtividade(BaseModel):
+    """Resumo por atividade."""
+
+    id: str = Field(..., description="ID da atividade")
+    nome: str = Field(..., description="Nome da atividade")
+    total_horas: float = Field(..., description="Total de horas")
+
+
+class ResumoPorUsuario(BaseModel):
+    """Resumo por usuário."""
+
+    id: str = Field(..., description="ID do usuário")
+    nome: str = Field(..., description="Nome do usuário")
+    total_horas: float = Field(..., description="Total de horas")
+
+
 class ApontamentoResumo(BaseModel):
     """Schema para resumo de apontamentos de um work item."""
 
     work_item_id: int = Field(..., description="ID do Work Item")
-    total_apontamentos: int = Field(..., description="Quantidade de apontamentos")
     total_horas: float = Field(..., description="Total de horas apontadas (decimal)")
-    total_formatado: str = Field(..., description="Total formatado (HH:mm)")
+    total_apontamentos: int = Field(..., description="Quantidade de apontamentos")
+    media_horas_por_apontamento: float = Field(
+        ..., description="Média de horas por apontamento"
+    )
+    primeira_data: date | None = Field(
+        default=None, description="Primeira data registrada"
+    )
+    ultima_data: date | None = Field(
+        default=None, description="Última data registrada"
+    )
+    por_atividade: list[ResumoPorAtividade] = Field(
+        default_factory=list, description="Totais por atividade"
+    )
+    por_usuario: list[ResumoPorUsuario] = Field(
+        default_factory=list, description="Totais por usuário"
+    )

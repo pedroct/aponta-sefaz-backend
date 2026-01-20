@@ -1,0 +1,69 @@
+# Deploy automático para Staging quando há push na branch develop
+name: Deploy Staging
+
+on:
+  push:
+    branches:
+      - develop
+
+env:
+  VPS_HOST: 92.112.178.252
+  VPS_USER: root
+  DEPLOY_PATH: /home/ubuntu/aponta-sefaz/staging/backend
+
+jobs:
+  test:
+    name: Testes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          
+      - name: Instalar dependências
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio httpx
+          
+      - name: Rodar testes
+        run: pytest tests/ -v
+        env:
+          AUTH_ENABLED: "false"
+          DATABASE_SCHEMA: api_aponta_test
+
+  deploy:
+    name: Deploy Staging
+    needs: test
+    runs-on: ubuntu-latest
+    environment: staging
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Configurar SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ env.VPS_HOST }} >> ~/.ssh/known_hosts
+          
+      - name: Deploy para Staging
+        run: |
+          # Sincronizar código
+          rsync -avz --delete \
+            --exclude='.git' \
+            --exclude='__pycache__' \
+            --exclude='.env' \
+            --exclude='venv' \
+            ./ ${{ env.VPS_USER }}@${{ env.VPS_HOST }}:${{ env.DEPLOY_PATH }}/
+          
+          # Reiniciar container
+          ssh ${{ env.VPS_USER }}@${{ env.VPS_HOST }} "cd /home/ubuntu/aponta-sefaz/staging && docker compose down && docker compose up -d"
+          
+      - name: Verificar deploy
+        run: |
+          sleep 10
+          ssh ${{ env.VPS_USER }}@${{ env.VPS_HOST }} "curl -sf http://localhost:8081/api/v1 || exit 1"

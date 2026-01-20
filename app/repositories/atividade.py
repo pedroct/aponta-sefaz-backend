@@ -4,7 +4,7 @@ Repository para operações de banco de dados da entidade Atividade.
 
 from uuid import UUID
 from sqlalchemy.orm import Session, joinedload, selectinload
-from sqlalchemy import exists
+from sqlalchemy import exists, inspect
 from app.models.atividade import Atividade
 from app.models.atividade_projeto import AtividadeProjeto
 from app.models.projeto import Projeto
@@ -16,6 +16,12 @@ class AtividadeRepository:
 
     def __init__(self, db: Session):
         self.db = db
+
+    def _table_exists(self, table_name: str) -> bool:
+        """Verifica se uma tabela existe no schema configurado."""
+        schema = Atividade.__table__.schema
+        inspector = inspect(self.db.get_bind())
+        return table_name in inspector.get_table_names(schema=schema)
 
     def _validate_projetos(self, ids_projetos: list[UUID]) -> list[UUID]:
         """
@@ -31,10 +37,23 @@ class AtividadeRepository:
             ValueError: Se algum projeto não existir.
         """
         projetos_existentes = (
-            self.db.query(Projeto.id).filter(Projeto.id.in_(ids_projetos)).all()
+            self.db.query(Projeto)
+            .filter(
+                (Projeto.id.in_(ids_projetos))
+                | (Projeto.external_id.in_(ids_projetos))
+            )
+            .all()
         )
+
         ids_existentes = {p.id for p in projetos_existentes}
-        ids_invalidos = set(ids_projetos) - ids_existentes
+        ids_match = set()
+        for projeto in projetos_existentes:
+            if projeto.id in ids_projetos:
+                ids_match.add(projeto.id)
+            if projeto.external_id in ids_projetos:
+                ids_match.add(projeto.external_id)
+
+        ids_invalidos = set(ids_projetos) - ids_match
 
         if ids_invalidos:
             raise ValueError(
@@ -126,6 +145,16 @@ class AtividadeRepository:
         Returns:
             Objeto Atividade ou None se não encontrado.
         """
+        if not self._table_exists(Atividade.__tablename__):
+            return None
+
+        if not self._table_exists(AtividadeProjeto.__tablename__):
+            return (
+                self.db.query(Atividade)
+                .filter(Atividade.id == atividade_id)
+                .first()
+            )
+
         return (
             self.db.query(Atividade)
             .options(
@@ -157,24 +186,35 @@ class AtividadeRepository:
         Returns:
             Tupla (lista de atividades, total de registros).
         """
-        query = self.db.query(Atividade).options(
-            selectinload(Atividade.atividade_projetos).joinedload(
-                AtividadeProjeto.projeto
+        if not self._table_exists(Atividade.__tablename__):
+            return [], 0
+
+        has_rel_table = self._table_exists(AtividadeProjeto.__tablename__)
+
+        query = self.db.query(Atividade)
+
+        if has_rel_table:
+            query = query.options(
+                selectinload(Atividade.atividade_projetos).joinedload(
+                    AtividadeProjeto.projeto
+                )
             )
-        )
 
         # Aplicar filtro de status
         if ativo is not None:
             query = query.filter(Atividade.ativo == ativo)
 
         # Aplicar filtro de projeto (busca atividades que contêm o projeto)
-        if id_projeto is not None:
+        if id_projeto is not None and has_rel_table:
             query = query.filter(
                 exists().where(
                     (AtividadeProjeto.id_atividade == Atividade.id)
                     & (AtividadeProjeto.id_projeto == id_projeto)
                 )
             )
+
+        if id_projeto is not None and not has_rel_table:
+            return [], 0
 
         # Contar total antes de paginação
         total = query.count()

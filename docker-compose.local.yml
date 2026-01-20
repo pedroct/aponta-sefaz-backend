@@ -1,26 +1,33 @@
 # Docker Compose para Desenvolvimento Local
-# Apenas PostgreSQL para testes
+# Conecta à mesma rede e banco de dados do ambiente de produção
+#
+# IMPORTANTE: O container postgres-aponta deve estar rodando antes de usar este compose
+# Para iniciar: docker compose up -d postgres (no docker-compose.yml principal)
 
 services:
-  # PostgreSQL 15
-  postgres:
-    image: postgres:15-alpine
-    container_name: postgres-aponta-local
+  # API FastAPI - Desenvolvimento Local
+  api-local:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: api-aponta-local
     restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${DATABASE_NAME:-gestao_projetos}
-      POSTGRES_USER: ${DATABASE_USER:-api-aponta-user}
-      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-api-aponta-password}
     ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data_local:/var/lib/postgresql/data
-      - ./scripts/init-schema.sql:/docker-entrypoint-initdb.d/init-schema.sql:ro
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER:-api-aponta-user} -d ${DATABASE_NAME:-gestao_projetos}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - ENVIRONMENT=development
+      - API_DEBUG=true
+      - DATABASE_HOST=host.docker.internal  # Windows host (PostgreSQL fora do compose)
+      - DATABASE_URL=postgresql://${DATABASE_USER:-aponta_user}:${DATABASE_PASSWORD:-aponta_secret_password}@host.docker.internal:5432/${DATABASE_NAME:-gestao_projetos}
+      - TZ=America/Fortaleza
+    networks:
+      - api-aponta_aponta-network
 
-volumes:
-  postgres_data_local:
+# Usa a rede externa já criada pelo docker-compose.yml principal
+networks:
+  api-aponta_aponta-network:
+    external: true
+
+# Usa o banco postgres-aponta já existente no docker-compose.yml principal

@@ -17,6 +17,8 @@ from app.schemas.atividade import (
     AtividadeUpdate,
     AtividadeResponse,
     AtividadeListResponse,
+    AtividadeCatalogResponse,
+    AtividadeCatalogItem,
 )
 
 router = APIRouter(prefix="/atividades", tags=["Atividades"])
@@ -58,7 +60,7 @@ def criar_atividade(
 
 @router.get(
     "",
-    response_model=AtividadeListResponse,
+    response_model=AtividadeCatalogResponse,
     summary="Listar atividades",
     description="""
     Lista todas as atividades com paginação e filtros opcionais.
@@ -76,13 +78,26 @@ def listar_atividades(
     ),
     current_user: AzureDevOpsUser = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> AtividadeListResponse:
-    """Endpoint para listar atividades com paginação."""
+) -> AtividadeCatalogResponse:
+    """Endpoint para listar atividades no formato esperado pelo frontend."""
     repository = AtividadeRepository(db)
-    atividades, total = repository.get_all(
+    atividades, _ = repository.get_all(
         skip=skip, limit=limit, ativo=ativo, id_projeto=id_projeto
     )
-    return AtividadeListResponse(items=atividades, total=total)
+
+    atividades_ordenadas = sorted(atividades, key=lambda item: (item.nome or ""))
+    items = [
+        AtividadeCatalogItem(
+            id=str(atividade.id),
+            nome=atividade.nome,
+            descricao=atividade.descricao,
+            ativo=atividade.ativo,
+            order=index + 1,
+        )
+        for index, atividade in enumerate(atividades_ordenadas)
+    ]
+
+    return AtividadeCatalogResponse(items=items)
 
 
 @router.get(

@@ -248,6 +248,81 @@ class ApontamentoRepository:
 
         return total_horas, total_formatado
 
+    def get_summary_by_work_item(
+        self,
+        work_item_id: int,
+        organization_name: str,
+        project_id: str,
+    ) -> dict:
+        """
+        Retorna resumo completo de apontamentos por work item.
+
+        Returns:
+            Dict com totais e agregações por atividade e usuário.
+        """
+        apontamentos = (
+            self.db.query(Apontamento)
+            .options(joinedload(Apontamento.atividade))
+            .filter(
+                Apontamento.work_item_id == work_item_id,
+                Apontamento.organization_name == organization_name,
+                Apontamento.project_id == project_id,
+            )
+            .all()
+        )
+
+        total_apontamentos = len(apontamentos)
+        total_horas = sum(duracao_to_decimal(a.duracao) for a in apontamentos)
+
+        if total_apontamentos > 0:
+            primeira_data = min(a.data_apontamento for a in apontamentos)
+            ultima_data = max(a.data_apontamento for a in apontamentos)
+            media_horas = total_horas / total_apontamentos
+        else:
+            primeira_data = None
+            ultima_data = None
+            media_horas = 0.0
+
+        por_atividade: dict[str, dict] = {}
+        por_usuario: dict[str, dict] = {}
+
+        for apontamento in apontamentos:
+            horas = duracao_to_decimal(apontamento.duracao)
+
+            atividade_id = str(apontamento.id_atividade)
+            atividade_nome = (
+                apontamento.atividade.nome if apontamento.atividade else ""
+            )
+
+            if atividade_id not in por_atividade:
+                por_atividade[atividade_id] = {
+                    "id": atividade_id,
+                    "nome": atividade_nome,
+                    "total_horas": 0.0,
+                }
+            por_atividade[atividade_id]["total_horas"] += horas
+
+            usuario_id = apontamento.usuario_id
+            usuario_nome = apontamento.usuario_nome
+            if usuario_id not in por_usuario:
+                por_usuario[usuario_id] = {
+                    "id": usuario_id,
+                    "nome": usuario_nome,
+                    "total_horas": 0.0,
+                }
+            por_usuario[usuario_id]["total_horas"] += horas
+
+        return {
+            "work_item_id": work_item_id,
+            "total_horas": total_horas,
+            "total_apontamentos": total_apontamentos,
+            "media_horas_por_apontamento": media_horas,
+            "primeira_data": primeira_data,
+            "ultima_data": ultima_data,
+            "por_atividade": list(por_atividade.values()),
+            "por_usuario": list(por_usuario.values()),
+        }
+
     def get_all(
         self,
         skip: int = 0,

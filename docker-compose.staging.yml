@@ -1,0 +1,55 @@
+# Docker Compose para Ambiente de Staging
+# Usa schema PostgreSQL separado (api_aponta_staging) no mesmo banco
+# Conecta à rede existente do nginx-aponta
+#
+# Uso: docker compose -f docker-compose.staging.yml up -d --build
+# IMPORTANTE: O nginx-aponta deve ser atualizado para rotear staging
+
+services:
+  # Frontend React - Staging
+  frontend-staging:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=/api/v1
+        - VITE_AZURE_ORG=sefaz-ceara-lab
+        - VITE_AZURE_PROJECT=DEV
+    container_name: fe-aponta-staging
+    restart: unless-stopped
+    networks:
+      - api-aponta-vps_aponta-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # API FastAPI - Staging
+  api-staging:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: api-aponta-staging
+    restart: unless-stopped
+    env_file:
+      - .env.staging
+    environment:
+      - ENVIRONMENT=staging
+      - API_DEBUG=true
+      - DATABASE_SCHEMA=api_aponta_staging
+      - DATABASE_HOST=postgres-aponta
+      - TZ=America/Fortaleza
+    networks:
+      - api-aponta-vps_aponta-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+# Usa a rede externa já criada pelo docker-compose.yml principal
+networks:
+  api-aponta-vps_aponta-network:
+    external: true

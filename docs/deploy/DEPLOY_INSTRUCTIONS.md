@@ -2,7 +2,7 @@
 
 ## ✅ Status do Projeto: PRONTO PARA DEPLOY
 
-Data: 2026-01-12
+Data: 2026-01-18
 Domínio: **api-aponta.pedroct.com.br**
 VPS IP: **31.97.16.12** (Hostinger)
 
@@ -26,9 +26,10 @@ VPS IP: **31.97.16.12** (Hostinger)
 ### 3. CORS Configurado
 ```
 https://api-aponta.pedroct.com.br
-https://*.dev.azure.com
-https://*.vsassets.io
-https://*.gallerycdn.vsassets.io
+https://dev.azure.com
+https://vsassets.io
+https://sefaz-ceara.gallerycdn.vsassets.io
+https://sefaz-ceara-lab.gallerycdn.vsassets.io
 ```
 
 ---

@@ -16,6 +16,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir --user -r requirements.txt
 
+# Garante que pytest esteja no PATH do builder
+ENV PATH=/root/.local/bin:$PATH
+
+# Copia codigo e testes para executar pytest durante o build
+COPY app ./app
+COPY tests ./tests
+COPY pytest.ini ./pytest.ini
+
+# Executa testes durante o build
+RUN pytest -q
+
 # === Stage 2: Production ===
 FROM python:3.12-slim
 

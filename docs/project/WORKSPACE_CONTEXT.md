@@ -11,11 +11,19 @@ Projeto criado a partir do `api-aponta-supa` para deploy em VPS Hostinger com Cl
 - **Versão:** v0.1.0
 - **Status:** ✅ Pronto para deploy em produção
 
-### Deploy
-- **Domínio:** api-aponta.pedroct.com.br
-- **VPS:** Hostinger (31.97.16.12)
+### Producao (VPS Hostinger)
+- **Host:** srv1264175.hstgr.cloud
+- **IP:** 31.97.16.12
+- **SSH:** `ssh root@31.97.16.12`
+- **Dominio:** api-aponta.pedroct.com.br
 - **CDN/Proxy:** CloudFlare (SSL/TLS Full Strict)
-- **Ambiente:** Production
+- **Caminho:** /opt/api-aponta-vps
+
+### Desenvolvimento Local (Docker)
+- **Container API:** api-aponta-local (porta 8000)
+- **Container DB:** postgres-aponta (PostgreSQL 15 compartilhado)
+- **Rede:** api-aponta_aponta-network
+- **Swagger:** http://localhost:8000/docs
 
 ---
 
@@ -30,10 +38,11 @@ Este projeto possui documentação profissional e abrangente:
 - **CONTRIBUTING.md** - Guia para contribuidores
 - **SECURITY.md** - Políticas de segurança
 
-### Documentação de Deploy
+### Documentacao de Deploy
 - **DEPLOY_INSTRUCTIONS.md** - Guia completo de deploy
-- **CLOUDFLARE_SETUP.md** - Configuração CloudFlare
+- **CLOUDFLARE_SETUP.md** - Configuracao CloudFlare
 - **CLOUDFLARE_FINAL_SETUP.md** - Setup final SSL
+- **ENVIRONMENTS.md** - Ambientes de producao e desenvolvimento
 
 **Total:** 10 documentos | ~8,000 linhas | 100% coverage
 
@@ -48,9 +57,10 @@ Este projeto possui documentação profissional e abrangente:
 - `docs/deploy/DEPLOY_INSTRUCTIONS.md`
 - `docs/deploy/CLOUDFLARE_SETUP.md`
 - `docs/deploy/CLOUDFLARE_FINAL_SETUP.md`
+- `docs/deploy/ENVIRONMENTS.md`
 
 ---
 
 **Para informações detalhadas, consulte README.md**
 
-**Última atualização:** 2026-01-12 | **Versão:** 2.0
+**Ultima atualizacao:** 2026-01-18 | **Versao:** 2.2

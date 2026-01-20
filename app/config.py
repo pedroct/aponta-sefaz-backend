@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     )
     database_host: str = "localhost"
     database_port: int = 5432
-    database_name: str = "aponta_db"
+    database_name: str = "gestao_projetos"
     database_user: str = "postgres"
     database_password: str = "postgres"
 
@@ -41,6 +41,12 @@ class Settings(BaseSettings):
 
     # Ambiente
     environment: str = "development"
+
+    # Seed
+    seed_initial_data: bool = Field(
+        default=True,
+        validation_alias=AliasChoices("SEED_INITIAL_DATA", "seed_initial_data"),
+    )
 
     # CORS
     cors_origins: str = "http://localhost:3000,http://localhost:5173"
@@ -70,10 +76,24 @@ class Settings(BaseSettings):
             "https://vsassets.io",
         ]
 
+        # Frontend em produção
+        frontend_origins = [
+            "https://aponta.pedroct.com.br",
+            "http://aponta.pedroct.com.br",
+        ]
+
         # Adiciona origens localhost comuns para desenvolvimento
         dev_origins = [
+            "http://localhost",
+            "http://127.0.0.1",
+            "http://localhost:80",
+            "http://127.0.0.1:80",
             "http://localhost:8082",
             "http://127.0.0.1:8082",
+            "http://localhost:5000",
+            "http://127.0.0.1:5000",
+            "http://localhost:5002",
+            "http://127.0.0.1:5002",
             "http://localhost:3000",
             "http://127.0.0.1:3000",
             "http://localhost:5173",
@@ -81,7 +101,7 @@ class Settings(BaseSettings):
         ]
 
         # Adiciona todas as origens que não existem
-        for origin in azure_devops_origins + dev_origins:
+        for origin in azure_devops_origins + frontend_origins + dev_origins:
             if origin not in origins:
                 origins.append(origin)
 

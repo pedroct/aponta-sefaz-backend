@@ -35,7 +35,7 @@ class Atividade(Base):
         "AtividadeProjeto",
         back_populates="atividade",
         cascade="all, delete-orphan",
-        lazy="joined",
+        lazy="selectin",
     )
 
     @property

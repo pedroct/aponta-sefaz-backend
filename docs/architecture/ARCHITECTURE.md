@@ -3,7 +3,7 @@
 **API Aponta VPS - System Architecture**
 
 Version: 0.1.0
-Last Updated: 2026-01-12
+Last Updated: 2026-01-18
 
 ---
 
@@ -29,8 +29,10 @@ API Aponta is a production-grade REST API backend built with FastAPI, designed t
 ### Key Features
 
 - **RESTful API** with automatic OpenAPI (Swagger) documentation
-- **CRUD Operations** for activities and projects
+- **CRUD Operations** for activities, projects, and apontamentos
 - **Azure DevOps Integration** with secure authentication
+- **Work Items search** for Azure DevOps IDs/titles
+- **User endpoint** for authenticated profile
 - **Multi-layer Security** with CloudFlare and Nginx
 - **Containerized Deployment** using Docker Compose
 - **Database Migrations** with Alembic
@@ -108,7 +110,7 @@ API Aponta is a production-grade REST API backend built with FastAPI, designed t
 │  │  ┌──────────────────────────────────────────────────┐  │ │
 │  │  │ - Relational Database                            │  │ │
 │  │  │ - Schema: api_aponta                             │  │ │
-│  │  │ - Tables: atividades, projetos                   │  │ │
+│  │  │ - Tables: atividades, projetos, atividade_projeto, apontamentos │  │ │
 │  │  │ - ACID Transactions                              │  │ │
 │  │  │ - Persistent Volume Storage                      │  │ │
 │  │  │ - Health Check                                   │  │ │
@@ -140,7 +142,10 @@ External Integration:
 │  │  │            │  │            │  │                   │  ││
 │  │  │ atividades │  │ AtividadeX │  │ CORS              │  ││
 │  │  │ projetos   │  │ ProjetoX   │  │ Error Handler     │  ││
-│  │  │ integracao │  │ ResponseX  │  │ Request Logger    │  ││
+│  │  │ apontamentos ││ ApontamentoX│ │ Request Logger    │  ││
+│  │  │ work_items │  │ WorkItemX  │  │                   │  ││
+│  │  │ integracao │  │ ResponseX  │  │                   │  ││
+│  │  │ user       │  │ UserX      │  │                   │  ││
 │  │  └────────────┘  └────────────┘  └───────────────────┘  ││
 │  └──────────────────────────────────────────────────────────┘│
 │                              │                                 │
@@ -150,7 +155,8 @@ External Integration:
 │  │  │  Services  │  │    Auth    │  │   Repositories    │  ││
 │  │  │            │  │            │  │                   │  ││
 │  │  │ AzureService│  │ JWT/Token  │  │ AtividadeRepo    │  ││
-│  │  │ ProjetoSvc │  │ Validation │  │                   │  ││
+│  │  │ ProjetoSvc │  │ Validation │  │ ApontamentoRepo  │  ││
+│  │  │ ApontamentoSvc││           │  │                  │  ││
 │  │  └────────────┘  └────────────┘  └───────────────────┘  ││
 │  └──────────────────────────────────────────────────────────┘│
 │                              │                                 │
@@ -319,6 +325,21 @@ POST   /api/v1/integracao/sincronizar  # Sync projects
 
 # Integração
 GET    /api/v1/integracao/projetos     # List Azure DevOps projects
+
+# Apontamentos
+POST   /api/v1/apontamentos                    # Create apontamento
+GET    /api/v1/apontamentos/work-item/{id}     # List by work item
+GET    /api/v1/apontamentos/work-item/{id}/resumo # Summary by work item
+GET    /api/v1/apontamentos/work-item/{id}/azure-info # Azure time info
+GET    /api/v1/apontamentos/{id}               # Get apontamento
+PUT    /api/v1/apontamentos/{id}               # Update apontamento
+DELETE /api/v1/apontamentos/{id}               # Delete apontamento
+
+# Work Items
+GET    /api/v1/work-items/search               # Search work items
+
+# User
+GET    /api/v1/user                            # Authenticated user
 ```
 
 ### 4. PostgreSQL Database
@@ -342,7 +363,7 @@ GET    /api/v1/integracao/projetos     # List Azure DevOps projects
 - nome (VARCHAR(255), NOT NULL)
 - descricao (TEXT)
 - ativo (BOOLEAN, DEFAULT true)
-- id_projeto (UUID, FK)
+- criado_por (VARCHAR)
 - criado_em (TIMESTAMP)
 - atualizado_em (TIMESTAMP)
 ```
@@ -350,8 +371,37 @@ GET    /api/v1/integracao/projetos     # List Azure DevOps projects
 #### projetos
 ```sql
 - id (UUID, PK)
-- nome (VARCHAR(255), NOT NULL)
-- azure_project_id (VARCHAR)
+- external_id (UUID, UNIQUE)
+- nome (VARCHAR, NOT NULL)
+- descricao (TEXT)
+- url (VARCHAR)
+- estado (VARCHAR)
+- last_sync_at (TIMESTAMP)
+- created_at (TIMESTAMP)
+- updated_at (TIMESTAMP)
+```
+
+#### atividade_projeto
+```sql
+- id (UUID, PK)
+- id_atividade (UUID, FK)
+- id_projeto (UUID, FK)
+- criado_em (TIMESTAMP)
+```
+
+#### apontamentos
+```sql
+- id (UUID, PK)
+- work_item_id (INT)
+- project_id (VARCHAR)
+- organization_name (VARCHAR)
+- data_apontamento (DATE)
+- duracao (VARCHAR(5))
+- id_atividade (UUID, FK)
+- comentario (VARCHAR(500))
+- usuario_id (VARCHAR)
+- usuario_nome (VARCHAR)
+- usuario_email (VARCHAR)
 - criado_em (TIMESTAMP)
 - atualizado_em (TIMESTAMP)
 ```

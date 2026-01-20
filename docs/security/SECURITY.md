@@ -3,7 +3,7 @@
 **API Aponta VPS - Security Documentation**
 
 Version: 0.1.0
-Last Updated: 2026-01-12
+Last Updated: 2026-01-18
 
 ---
 

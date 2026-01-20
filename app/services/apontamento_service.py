@@ -60,16 +60,11 @@ class ApontamentoService:
         )
 
         async with httpx.AsyncClient(timeout=10.0) as client:
-            # Tentar Basic (PAT) primeiro
+            # Usar Basic (PAT)
             pat_encoded = base64.b64encode(f":{self.token}".encode()).decode()
             headers = {"Authorization": f"Basic {pat_encoded}"}
 
             response = await client.get(url, headers=headers)
-
-            if response.status_code == 401:
-                # Tentar Bearer
-                headers = {"Authorization": f"Bearer {self.token}"}
-                response = await client.get(url, headers=headers)
 
             if response.status_code != 200:
                 logger.error(
@@ -137,7 +132,7 @@ class ApontamentoService:
         ]
 
         async with httpx.AsyncClient(timeout=10.0) as client:
-            # Tentar Basic (PAT) primeiro
+            # Usar Basic (PAT)
             pat_encoded = base64.b64encode(f":{self.token}".encode()).decode()
             headers = {
                 "Authorization": f"Basic {pat_encoded}",
@@ -145,14 +140,6 @@ class ApontamentoService:
             }
 
             response = await client.patch(url, headers=headers, json=patch_document)
-
-            if response.status_code == 401:
-                # Tentar Bearer
-                headers = {
-                    "Authorization": f"Bearer {self.token}",
-                    "Content-Type": "application/json-patch+json",
-                }
-                response = await client.patch(url, headers=headers, json=patch_document)
 
             if response.status_code == 200:
                 logger.info(
@@ -382,3 +369,15 @@ class ApontamentoService:
             "remainingWork": fields.get("Microsoft.VSTS.Scheduling.RemainingWork", 0),
             "completedWork": fields.get("Microsoft.VSTS.Scheduling.CompletedWork", 0),
         }
+
+    def resumo_por_work_item(
+        self, work_item_id: int, organization_name: str, project_id: str
+    ) -> dict:
+        """
+        Retorna resumo completo conforme contrato do frontend.
+        """
+        return self.repository.get_summary_by_work_item(
+            work_item_id=work_item_id,
+            organization_name=organization_name,
+            project_id=project_id,
+        )

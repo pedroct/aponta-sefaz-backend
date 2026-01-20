@@ -1,0 +1,55 @@
+# Docker Compose - Serviços Compartilhados
+# Nginx (proxy reverso) + PostgreSQL
+
+services:
+  # Nginx - Proxy Reverso (serve prod e staging)
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-aponta
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    networks:
+      - aponta-network
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      - postgres
+
+  # PostgreSQL 15 - Banco compartilhado (schemas diferentes)
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres-aponta
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: gestao_projetos
+      POSTGRES_USER: aponta_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ALTERE_ESTA_SENHA}
+      TZ: America/Fortaleza
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    networks:
+      - aponta-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aponta_user -d gestao_projetos"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  aponta-network:
+    name: aponta-shared-network
+    driver: bridge
+
+volumes:
+  postgres_data:

@@ -32,7 +32,10 @@ API Aponta é um backend robusto desenvolvido em FastAPI para gerenciar atividad
 
 - ✅ **REST API** completa com documentação Swagger
 - ✅ **CRUD** de atividades e projetos
+- ✅ **Registro de apontamentos** (horas) com atualização automática no Azure DevOps
 - ✅ **Integração** com Azure DevOps
+- ✅ **Busca de Work Items** no Azure DevOps
+- ✅ **Endpoint de usuário autenticado**
 - ✅ **HTTPS/SSL** via CloudFlare Origin Certificate
 - ✅ **Docker Compose** para orquestração de containers
 - ✅ **Nginx** como proxy reverso com rate limiting
@@ -202,8 +205,8 @@ API_PORT=8000
 API_DEBUG=false
 ENVIRONMENT=production
 
-# CORS
-CORS_ORIGINS=https://api-aponta.pedroct.com.br,https://*.dev.azure.com
+# CORS (sem wildcard)
+CORS_ORIGINS=https://api-aponta.pedroct.com.br,https://dev.azure.com,https://vsassets.io,https://sefaz-ceara.gallerycdn.vsassets.io,https://sefaz-ceara-lab.gallerycdn.vsassets.io
 
 # Azure DevOps
 AUTH_ENABLED=true
@@ -330,8 +333,33 @@ DELETE /api/v1/atividades/{id}     # Deletar
 #### Projetos
 ```bash
 GET    /api/v1/projetos            # Listar todos
-GET    /api/v1/projetos/{id}       # Buscar por ID
-POST   /api/v1/projetos            # Criar novo
+```
+
+#### Apontamentos
+```bash
+POST   /api/v1/apontamentos                        # Criar apontamento
+GET    /api/v1/apontamentos/work-item/{id}         # Listar por work item
+GET    /api/v1/apontamentos/work-item/{id}/resumo  # Resumo por work item
+GET    /api/v1/apontamentos/work-item/{id}/azure-info # Info do Azure DevOps
+GET    /api/v1/apontamentos/{id}                   # Buscar por ID
+PUT    /api/v1/apontamentos/{id}                   # Atualizar
+DELETE /api/v1/apontamentos/{id}                   # Excluir
+```
+
+#### Integração
+```bash
+GET    /api/v1/integracao/projetos     # Listar projetos do Azure DevOps
+POST   /api/v1/integracao/sincronizar  # Sincronizar projetos localmente
+```
+
+#### Work Items
+```bash
+GET    /api/v1/work-items/search  # Buscar por ID ou título
+```
+
+#### Usuário
+```bash
+GET    /api/v1/user               # Usuário autenticado
 ```
 
 ### Documentação Interativa
