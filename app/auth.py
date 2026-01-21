@@ -85,6 +85,32 @@ async def validate_azure_token(
         )
 
     token = credentials.credentials
+
+    # 0. Verificar se é um JWT (App Token da extensão)
+    if token.count(".") == 2 and (token.startswith("eyJ") or token.startswith("eyK")):
+        try:
+            # Decodificar payload sem verificar assinatura (Server-to-Server trust implícito por enquanto)
+            parts = token.split(".")
+            payload_b64 = parts[1] + "=" * (4 - len(parts[1]) % 4)
+            payload_json = base64.urlsafe_b64decode(payload_b64).decode()
+            claims = json.loads(payload_json)
+
+            if "app.vstoken" in claims.get("iss", ""):
+                user_id = claims.get("nameid")
+                display_name = claims.get("name", f"Azure User {user_id[:8]}")
+                logger.info(f"App Token detectado para usuário {user_id}")
+                return (
+                    AzureDevOpsUser(
+                        id=user_id,
+                        display_name=display_name,
+                        email=claims.get("email"),
+                        token=token,
+                    ),
+                    "",
+                )
+        except Exception:
+            pass
+
     scheme = credentials.scheme.lower()  # 'bearer' ou 'basic'
     logger.debug(f"Token recebido (scheme={scheme}, primeiros 10 chars): {token[:10]}...")
 
@@ -393,7 +419,7 @@ async def _fetch_profile_display_name(
 
 
 def get_current_user(
-    user: AzureDevOpsUser = Depends(validate_azure_token),
+    user: AzureDevOpsUser = Depends(validate_azure_token)  # noqa: B008,
 ) -> AzureDevOpsUser:
     """Dependency para obter usuário atual autenticado."""
     return user

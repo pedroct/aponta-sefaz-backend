@@ -15,7 +15,7 @@ engine = create_engine(
     pool_pre_ping=True,
     pool_size=5,
     max_overflow=10,
-    connect_args={"options": f"-csearch_path={settings.database_schema}"},
+    connect_args={"options": f"-c search_path=\"{settings.database_schema}\""},
 )
 
 # Session factory
