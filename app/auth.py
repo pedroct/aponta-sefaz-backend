@@ -144,35 +144,57 @@ async def _fetch_user_profile(
         is_bearer: Se True, usa Bearer auth (OAuth do SDK).
                    Se False, usa Basic auth (PAT).
     
-    Tenta validar usando connectionData na organização (se configurada)
-    ou no profile global.
+    Para tokens OAuth (Bearer):
+    - Usa o endpoint global de profile: app.vssps.visualstudio.com
+    - Não segue redirects (302 = token inválido)
+    
+    Para PAT (Basic):
+    - Usa connectionData na organização se configurada
+    - Segue redirects normalmente
     """
-    # Determinar URL de validação
-    if settings.azure_devops_org_url:
+    # Determinar URL de validação baseado no tipo de token
+    if is_bearer:
+        # Token OAuth do SDK - SEMPRE usa endpoint global de profile
+        # Este é o endpoint correto para validar tokens OAuth do Azure DevOps Extension SDK
+        validation_url = "https://app.vssps.visualstudio.com/_apis/profile/profiles/me?api-version=7.0"
+        logger.debug(f"OAuth token: usando endpoint global {validation_url}")
+    elif settings.azure_devops_org_url:
+        # PAT - usa connectionData na organização
         org_url = settings.azure_devops_org_url.rstrip("/")
         validation_url = f"{org_url}/_apis/connectionData?api-version=7.1-preview.1"
     else:
-        validation_url = "https://app.vssps.visualstudio.com/_apis/profile/profiles/me?api-version=7.1-preview.1"
+        # PAT sem org configurada - usa profile global
+        validation_url = "https://app.vssps.visualstudio.com/_apis/profile/profiles/me?api-version=7.0"
 
     profile_url = _build_profile_url(settings.azure_devops_org_url)
 
-    async with httpx.AsyncClient(timeout=10.0) as client:
+    # Para OAuth, não seguir redirects (302 = token inválido)
+    # Para PAT, seguir redirects normalmente
+    async with httpx.AsyncClient(timeout=15.0, follow_redirects=not is_bearer) as client:
         # Montar header de autorização baseado no tipo de token
         if is_bearer:
             # Bearer OAuth (token do SDK Azure DevOps)
             auth_header = f"Bearer {token}"
-            logger.debug("Usando Bearer OAuth para autenticação")
+            logger.debug(f"Usando Bearer OAuth para autenticação (token length: {len(token)})")
         else:
             # Basic Auth com PAT
             pat_encoded = base64.b64encode(f":{token}".encode()).decode()
             auth_header = f"Basic {pat_encoded}"
-            logger.debug("Usando Basic Auth (PAT) para autenticação")
+            logger.debug(f"Usando Basic Auth (PAT) para autenticação (token length: {len(token)})")
 
         try:
             # Validar token
+            logger.debug(f"Fazendo requisição para: {validation_url}")
             response = await client.get(
                 validation_url, headers={"Authorization": auth_header}
             )
+            
+            logger.debug(f"Response status: {response.status_code}")
+            
+            # Para OAuth, 302 significa token inválido (redirect para login)
+            if is_bearer and response.status_code in (301, 302, 303, 307, 308):
+                logger.warning(f"OAuth token inválido: recebido redirect {response.status_code}")
+                return None, f"Token OAuth inválido ou expirado (redirect {response.status_code})"
 
             if response.status_code == 200:
                 data = response.json()
