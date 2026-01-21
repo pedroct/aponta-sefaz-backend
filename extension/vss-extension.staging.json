@@ -1,0 +1,112 @@
+{
+  "manifestVersion": 1,
+  "id": "aponta-projetos-staging",
+  "version": "1.0.0",
+  "name": "Aponta Timetracker (Staging)",
+  "description": "[STAGING] Extensão para gerenciamento de apontamentos de horas em atividades dos projetos de engenharia de software da Sefaz Ceará",
+  "publisher": "sefaz-ceara-lab",
+  "targets": [
+    {
+      "id": "Microsoft.VisualStudio.Services"
+    }
+  ],
+  "icons": {
+    "default": "images/icon-128.png"
+  },
+  "categories": [
+    "Azure Boards"
+  ],
+  "tags": [
+    "timetracker",
+    "time tracking",
+    "timesheet",
+    "apontamento",
+    "horas",
+    "gestão de projetos",
+    "sefaz",
+    "staging",
+    "homologação"
+  ],
+  "scopes": [
+    "vso.profile",
+    "vso.work_write"
+  ],
+  "demands": [],
+  "baseUri": "https://staging-aponta.treit.com.br",
+  "contributions": [
+    {
+      "id": "aponta-hub-group",
+      "type": "ms.vss-web.hub-group",
+      "targets": [
+        "ms.vss-web.project-hub-groups-collection"
+      ],
+      "properties": {
+        "name": "Aponta (Staging)",
+        "order": 100,
+        "icon": "images/icon-16.png"
+      }
+    },
+    {
+      "id": "timesheet-hub",
+      "type": "ms.vss-web.hub",
+      "targets": [
+        ".aponta-hub-group"
+      ],
+      "properties": {
+        "name": "Timesheet",
+        "order": 100,
+        "uri": "dist/timesheet.html",
+        "icon": {
+          "light": "images/icon-16.png",
+          "dark": "images/icon-16-dark.png"
+        }
+      }
+    },
+    {
+      "id": "atividades-hub",
+      "type": "ms.vss-web.hub",
+      "targets": [
+        ".aponta-hub-group"
+      ],
+      "properties": {
+        "name": "Atividades",
+        "order": 200,
+        "uri": "dist/atividades.html",
+        "icon": {
+          "light": "images/icon-16.png",
+          "dark": "images/icon-16-dark.png"
+        }
+      }
+    },
+    {
+      "id": "work-item-form-group",
+      "type": "ms.vss-work-web.work-item-form-group",
+      "targets": [
+        "ms.vss-work-web.work-item-form"
+      ],
+      "properties": {
+        "name": "Apontamentos (Staging)",
+        "uri": "dist/work-item-panel.html",
+        "height": 300
+      }
+    }
+  ],
+  "files": [
+    {
+      "path": "dist",
+      "addressable": true
+    },
+    {
+      "path": "images",
+      "addressable": true
+    }
+  ],
+  "gallery": {
+    "color": "#FFA500",
+    "theme": "dark"
+  },
+  "repository": {
+    "type": "git",
+    "uri": "https://github.com/pedroct/aponta-sefaz-frontend"
+  }
+}
