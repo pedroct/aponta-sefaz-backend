@@ -60,13 +60,13 @@ jobs:
             --exclude='.github' \
             ./ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.DEPLOY_PATH_PRD }}/
           
-          # Reiniciar container
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "cd /home/ubuntu/aponta-sefaz/production && docker compose down && docker compose up -d"
+          # Reiniciar apenas o container da API (não afeta o frontend)
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "cd /home/ubuntu/aponta-sefaz/production && docker compose up -d --build --force-recreate --no-deps api"
           
       - name: Verificar deploy
         run: |
           sleep 15
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "curl -sf http://localhost:8080/api/v1 || exit 1"
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "docker exec api-aponta-prod curl -sf http://localhost:8000/api/v1 || exit 1"
           
       - name: Notificar sucesso
         if: success()

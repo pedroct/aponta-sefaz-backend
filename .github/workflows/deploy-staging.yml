@@ -60,8 +60,8 @@ jobs:
             --exclude='.github' \
             ./ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.DEPLOY_PATH_STG }}/
           
-          # Reiniciar container
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "cd /home/ubuntu/aponta-sefaz/staging && docker compose down && docker compose up -d"
+          # Reiniciar apenas o container da API (não afeta o frontend)
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "cd /home/ubuntu/aponta-sefaz/staging && docker compose up -d --build --force-recreate --no-deps api"
           
       - name: Verificar deploy
         run: |
