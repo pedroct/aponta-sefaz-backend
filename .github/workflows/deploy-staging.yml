@@ -66,4 +66,4 @@ jobs:
       - name: Verificar deploy
         run: |
           sleep 15
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "curl -sf http://localhost:8081/api/v1 || exit 1"
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "docker exec api-aponta-staging curl -sf http://localhost:8000/api/v1 || exit 1"
