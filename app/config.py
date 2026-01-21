@@ -56,6 +56,16 @@ class Settings(BaseSettings):
     auth_enabled: bool = True
     azure_devops_org_url: str = ""
     azure_devops_pat: str = ""
+    
+    # Secret da extensão Azure DevOps (para validar App Tokens JWT)
+    # Obter em: https://aka.ms/vsmarketplace-manage > Botão direito > Certificate
+    azure_extension_secret: str = Field(
+        "", validation_alias=AliasChoices("AZURE_EXTENSION_SECRET", "azure_extension_secret")
+    )
+    azure_extension_app_id: str = Field(
+        "560de67c-a2e8-408a-86ae-be7ea6bd0b7a",  # App ID da extensão
+        validation_alias=AliasChoices("AZURE_EXTENSION_APP_ID", "azure_extension_app_id")
+    )
 
     # GitHub
     github_token: str = ""

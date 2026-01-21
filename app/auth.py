@@ -3,12 +3,14 @@ Módulo de autenticação Azure DevOps.
 Suporta autenticação via:
 - Personal Access Token (PAT) para desenvolvimento
 - Bearer OAuth Token (do SDK Azure DevOps) para produção em iframe
+- App Token JWT (do SDK getAppToken()) para autenticação com backend próprio
 """
 
 import base64
 import json
 import logging
 import httpx
+import jwt  # PyJWT
 import re
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -45,6 +47,113 @@ class AzureDevOpsUser:
         return f"<AzureDevOpsUser(id={self.id}, name='{self.display_name}')>"
 
 
+def _is_app_token_jwt(token: str) -> bool:
+    """
+    Detecta se o token é um App Token JWT (de getAppToken()).
+    
+    App Token:
+    - Tem 3 partes separadas por '.' (formato JWT)
+    - Tamanho típico ~400-500 caracteres
+    - Header decodifica para algo como {"typ":"JWT","alg":"HS256"}
+    
+    Access Token (OAuth):
+    - Também tem formato JWT mas tamanho ~1000-1200 caracteres
+    - Usado para chamar APIs do Azure DevOps diretamente
+    """
+    if not token or "." not in token:
+        return False
+    
+    parts = token.split(".")
+    if len(parts) != 3:
+        return False
+    
+    # App tokens são menores (~400-500 chars)
+    # Access tokens são maiores (~1000-1200 chars)
+    # Usamos 700 como threshold
+    if len(token) > 700:
+        logger.debug(f"Token longo ({len(token)} chars) - provavelmente Access Token OAuth")
+        return False
+    
+    try:
+        # Tentar decodificar header para verificar
+        header_b64 = parts[0]
+        # Adicionar padding se necessário
+        padding = 4 - len(header_b64) % 4
+        if padding != 4:
+            header_b64 += "=" * padding
+        
+        header_json = base64.urlsafe_b64decode(header_b64)
+        header = json.loads(header_json)
+        
+        # App Token usa HS256
+        if header.get("alg") == "HS256":
+            logger.debug(f"Token identificado como App Token JWT (alg=HS256, {len(token)} chars)")
+            return True
+            
+    except Exception as e:
+        logger.debug(f"Erro ao analisar header do token: {e}")
+        
+    return False
+
+
+def validate_app_token_jwt(token: str) -> dict | None:
+    """
+    Valida um App Token JWT do Azure DevOps Extension SDK (getAppToken()).
+    
+    Claims esperados:
+    - nameid: ID do usuário Azure DevOps
+    - tid: Tenant ID
+    - jti: JWT ID único
+    - iss: app.vstoken.visualstudio.com (sem https://)
+    - aud: App ID da extensão
+    - nbf: Not Before
+    - exp: Expiration
+    
+    Returns:
+        dict com os claims se válido, None se inválido
+    """
+    if not settings.azure_extension_secret:
+        logger.warning(
+            "AZURE_EXTENSION_SECRET não configurado. "
+            "Obtenha em: https://aka.ms/vsmarketplace-manage > Botão direito > Certificate"
+        )
+        return None
+    
+    try:
+        payload = jwt.decode(
+            token,
+            settings.azure_extension_secret,
+            algorithms=["HS256"],
+            audience=settings.azure_extension_app_id,
+            options={
+                "require": ["exp", "nameid", "iss", "aud"],
+                "verify_exp": True,
+            }
+        )
+        
+        # Validar issuer (sem https://)
+        expected_issuer = "app.vstoken.visualstudio.com"
+        if payload.get("iss") != expected_issuer:
+            logger.warning(f"Issuer inválido: {payload.get('iss')} != {expected_issuer}")
+            return None
+        
+        logger.info(f"App Token JWT válido para usuário: {payload.get('nameid')}")
+        return payload
+        
+    except jwt.ExpiredSignatureError:
+        logger.warning("App Token JWT expirado")
+        return None
+    except jwt.InvalidAudienceError as e:
+        logger.warning(f"App Token JWT audience inválido: {e}")
+        return None
+    except jwt.InvalidSignatureError:
+        logger.warning("App Token JWT assinatura inválida - verifique o AZURE_EXTENSION_SECRET")
+        return None
+    except jwt.InvalidTokenError as e:
+        logger.warning(f"App Token JWT inválido: {e}")
+        return None
+
+
 async def validate_azure_token(
     request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(security),
@@ -53,7 +162,9 @@ async def validate_azure_token(
     Valida token de autenticação Azure DevOps.
 
     Suporta:
+    - App Token JWT (de getAppToken()) - PREFERIDO para autenticação com backend
     - Basic auth com PAT (para desenvolvimento/testes)
+    - Bearer OAuth Token (fallback, menos seguro)
 
     Quando AUTH_ENABLED=false, retorna usuário mock para desenvolvimento.
     """
@@ -109,15 +220,54 @@ async def validate_azure_token(
             pass
 
     scheme = credentials.scheme.lower()  # 'bearer' ou 'basic'
-    logger.debug(f"Token recebido (scheme={scheme}, primeiros 10 chars): {token[:10]}...")
+    logger.debug(f"Token recebido (scheme={scheme}, tamanho={len(token)} chars)")
 
     # Detectar tipo de autenticação:
-    # - Bearer: Token OAuth do SDK Azure DevOps (produção/iframe)
-    # - Basic: PAT codificado em base64 (desenvolvimento)
-    # - Bearer com PAT: Também suportado para flexibilidade
+    # 1. App Token JWT (de getAppToken()) - tokens curtos ~400-500 chars com HS256
+    # 2. Bearer OAuth (de getAccessToken()) - tokens longos ~1000+ chars
+    # 3. Basic Auth com PAT
+    
     is_bearer = scheme == "bearer"
     
-    # Validar token (Bearer OAuth ou PAT)
+    # PRIORIDADE 1: Tentar validar como App Token JWT (método preferido)
+    if is_bearer and _is_app_token_jwt(token):
+        logger.info("Detectado App Token JWT - validando com extension secret")
+        payload = validate_app_token_jwt(token)
+        
+        if payload:
+            user_id = payload.get("nameid", "")
+            
+            # Tentar obter informações adicionais do x-custom-header
+            display_name = f"User-{user_id[:8]}" if user_id else "Unknown"
+            email = None
+            
+            user_info = AzureDevOpsUser(
+                id=user_id,
+                display_name=display_name,
+                email=email,
+                token=token,
+            )
+            
+            # Sobrescrever com dados do header customizado (se disponível)
+            _apply_custom_header_user_info(user_info, request)
+            
+            logger.info(f"Usuário autenticado via App Token JWT: {user_info.display_name} ({user_id})")
+            return user_info
+        else:
+            # App Token JWT inválido
+            if not settings.azure_extension_secret:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="AZURE_EXTENSION_SECRET não configurado no servidor. Configure em: https://aka.ms/vsmarketplace-manage",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="App Token JWT inválido ou expirado",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+    
+    # PRIORIDADE 2: Validar via API do Azure DevOps (PAT ou OAuth Access Token)
     user_info, error_msg = await _fetch_user_profile(token, is_bearer=is_bearer)
 
     if not user_info:
