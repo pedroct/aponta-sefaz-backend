@@ -155,8 +155,17 @@ class TimesheetService:
         """
 
         async with httpx.AsyncClient(timeout=30.0) as client:
-            pat_encoded = base64.b64encode(f":{self.token}".encode()).decode()
-            headers = {"Authorization": f"Basic {pat_encoded}"}
+            # Detectar se é um JWT (App Token) ou PAT
+            # JWT tem 3 partes separadas por '.'
+            is_jwt = self.token.count(".") == 2 if self.token else False
+            
+            if is_jwt:
+                # App Token (JWT) - usar Bearer auth
+                headers = {"Authorization": f"Bearer {self.token}"}
+            else:
+                # PAT - usar Basic auth
+                pat_encoded = base64.b64encode(f":{self.token}".encode()).decode()
+                headers = {"Authorization": f"Basic {pat_encoded}"}
 
             response = await client.post(
                 wiql_url, headers=headers, json={"query": wiql}
@@ -218,8 +227,17 @@ class TimesheetService:
         """
 
         async with httpx.AsyncClient(timeout=30.0) as client:
-            pat_encoded = base64.b64encode(f":{self.token}".encode()).decode()
-            headers = {"Authorization": f"Basic {pat_encoded}"}
+            # Detectar se é um JWT (App Token) ou PAT
+            # JWT tem 3 partes separadas por '.'
+            is_jwt = self.token.count(".") == 2 if self.token else False
+            
+            if is_jwt:
+                # App Token (JWT) - usar Bearer auth
+                headers = {"Authorization": f"Bearer {self.token}"}
+            else:
+                # PAT - usar Basic auth
+                pat_encoded = base64.b64encode(f":{self.token}".encode()).decode()
+                headers = {"Authorization": f"Basic {pat_encoded}"}
 
             response = await client.post(
                 wiql_url, headers=headers, json={"query": wiql}
@@ -276,8 +294,17 @@ class TimesheetService:
             )
 
             async with httpx.AsyncClient(timeout=30.0) as client:
-                pat_encoded = base64.b64encode(f":{self.token}".encode()).decode()
-                headers = {"Authorization": f"Basic {pat_encoded}"}
+                # Detectar se é um JWT (App Token) ou PAT
+                # JWT tem 3 partes separadas por '.'
+                is_jwt = self.token.count(".") == 2 if self.token else False
+                
+                if is_jwt:
+                    # App Token (JWT) - usar Bearer auth
+                    headers = {"Authorization": f"Bearer {self.token}"}
+                else:
+                    # PAT - usar Basic auth
+                    pat_encoded = base64.b64encode(f":{self.token}".encode()).decode()
+                    headers = {"Authorization": f"Basic {pat_encoded}"}
 
                 response = await client.get(items_url, headers=headers)
 
@@ -592,8 +619,17 @@ class TimesheetService:
         )
 
         async with httpx.AsyncClient(timeout=10.0) as client:
-            pat_encoded = base64.b64encode(f":{self.token}".encode()).decode()
-            headers = {"Authorization": f"Basic {pat_encoded}"}
+            # Detectar se é um JWT (App Token) ou PAT
+            # JWT tem 3 partes separadas por '.'
+            is_jwt = self.token.count(".") == 2 if self.token else False
+            
+            if is_jwt:
+                # App Token (JWT) - usar Bearer auth
+                headers = {"Authorization": f"Bearer {self.token}"}
+            else:
+                # PAT - usar Basic auth
+                pat_encoded = base64.b64encode(f":{self.token}".encode()).decode()
+                headers = {"Authorization": f"Basic {pat_encoded}"}
 
             response = await client.get(url, headers=headers)
 
