@@ -19,6 +19,8 @@ from app.schemas.atividade import (
     AtividadeListResponse,
     AtividadeCatalogResponse,
     AtividadeCatalogItem,
+    AtividadeGestaoItem,
+    AtividadeGestaoResponse,
 )
 
 router = APIRouter(prefix="/atividades", tags=["Atividades"])
@@ -98,6 +100,50 @@ def listar_atividades(
     ]
 
     return AtividadeCatalogResponse(items=items)
+
+
+@router.get(
+    "/gestao",
+    response_model=AtividadeGestaoResponse,
+    summary="Listar atividades para gestão",
+    description="""
+    Lista todas as atividades com projetos associados para a tela de gestão.
+    Retorna todos os campos incluindo a lista de projetos vinculados.
+    """,
+)
+def listar_atividades_gestao(
+    skip: int = Query(0, ge=0, description="Registros a pular"),
+    limit: int = Query(100, ge=1, le=1000, description="Máximo de registros"),
+    ativo: bool | None = Query(None, description="Filtrar por status ativo"),
+    id_projeto: UUID | None = Query(
+        None, description="Filtrar por projeto (retorna atividades que contêm este projeto)"
+    ),
+    current_user: AzureDevOpsUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> AtividadeGestaoResponse:
+    """Endpoint para listar atividades na tela de gestão (com projetos)."""
+    repository = AtividadeRepository(db)
+    atividades, total = repository.get_all(
+        skip=skip, limit=limit, ativo=ativo, id_projeto=id_projeto
+    )
+
+    atividades_ordenadas = sorted(atividades, key=lambda item: (item.nome or ""))
+    items = [
+        AtividadeGestaoItem(
+            id=str(atividade.id),
+            nome=atividade.nome,
+            descricao=atividade.descricao,
+            ativo=atividade.ativo,
+            projetos=[
+                {"id": str(p.id), "nome": p.nome}
+                for p in atividade.projetos
+            ] if atividade.projetos else [],
+            criado_por=atividade.criado_por,
+        )
+        for atividade in atividades_ordenadas
+    ]
+
+    return AtividadeGestaoResponse(items=items, total=total)
 
 
 @router.get(

@@ -114,6 +114,35 @@ class AtividadeListResponse(BaseModel):
     total: int = Field(..., description="Total de registros")
 
 
+class ProjetoRef(BaseModel):
+    """Referência simplificada de projeto para listagem."""
+
+    id: str = Field(..., description="ID do projeto")
+    nome: str = Field(..., description="Nome do projeto")
+
+
+class AtividadeGestaoItem(BaseModel):
+    """Schema de atividade para tela de gestão (com projetos)."""
+
+    id: str = Field(..., description="ID da atividade")
+    nome: str = Field(..., description="Nome da atividade")
+    descricao: str | None = Field(default=None, description="Descrição da atividade")
+    ativo: bool = Field(..., description="Status ativo/inativo")
+    projetos: list[ProjetoRef] = Field(
+        default_factory=list, description="Lista de projetos associados"
+    )
+    criado_por: str | None = Field(
+        default=None, description="Usuário que criou a atividade"
+    )
+
+
+class AtividadeGestaoResponse(BaseModel):
+    """Resposta de listagem de atividades para gestão."""
+
+    items: list[AtividadeGestaoItem]
+    total: int = Field(..., description="Total de registros")
+
+
 class AtividadeCatalogItem(BaseModel):
     """Schema de atividade para catálogo do frontend."""
 
