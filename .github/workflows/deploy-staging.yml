@@ -43,10 +43,31 @@ jobs:
       
       - name: Configurar SSH
         run: |
+          set -e
+          echo "📋 Criando diretório SSH..."
           mkdir -p ~/.ssh
+          
+          echo "🔑 Importando chave privada..."
           echo "${{ secrets.VPS_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+          
+          echo "✅ Verificando chave privada..."
+          if [ ! -s ~/.ssh/id_rsa ]; then
+            echo "❌ Erro: Chave privada não foi importada corretamente"
+            exit 1
+          fi
+          
+          echo "🌐 Escaneando host SSH com timeout 15s..."
+          timeout 15 ssh-keyscan -t rsa -p 22 "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>&1 || {
+            echo "⚠️  ssh-keyscan falhou, tentando alternativa..."
+            ssh-keyscan -t rsa,ecdsa "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>&1
+          }
+          
+          echo "✅ Validando conexão SSH..."
+          timeout 10 ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "echo SSH OK" || {
+            echo "❌ Erro ao conectar via SSH"
+            exit 1
+          }
           
       - name: Deploy para Staging
         run: |
