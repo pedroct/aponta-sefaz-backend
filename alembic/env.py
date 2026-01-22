@@ -33,6 +33,14 @@ target_metadata = Base.metadata
 settings = get_settings()
 config.set_main_option("sqlalchemy.url", settings.database_url)
 
+# Exportar schema para as migrações usarem via contexto
+config.set_section_option("alembic", "sqlalchemy.schema", settings.database_schema)
+
+# Função helper para migrações acessarem o schema
+def get_migration_schema():
+    """Retorna o schema que deve ser usado nas migrações."""
+    return settings.database_schema
+
 
 def run_migrations_offline() -> None:
     """Executa migrações em modo 'offline'."""

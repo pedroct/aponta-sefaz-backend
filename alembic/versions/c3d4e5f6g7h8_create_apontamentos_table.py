@@ -10,12 +10,23 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import UUID
+import sys
+import os
+
+# Adicionar o diretório raiz ao path para importar app.config
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+from app.config import get_settings
 
 # revision identifiers, used by Alembic.
 revision: str = 'c3d4e5f6g7h8'
 down_revision: Union[str, None] = 'b2c3d4e5f6g7'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
+
+# Obter o schema dinamicamente
+settings = get_settings()
+DB_SCHEMA = settings.database_schema
 
 
 def upgrade() -> None:
@@ -36,8 +47,8 @@ def upgrade() -> None:
         sa.Column('usuario_email', sa.String(255), nullable=True, comment='Nome de login do usuário'),
         sa.Column('criado_em', sa.DateTime(), server_default=sa.func.now(), nullable=False),
         sa.Column('atualizado_em', sa.DateTime(), server_default=sa.func.now(), onupdate=sa.func.now(), nullable=False),
-        sa.ForeignKeyConstraint(['id_atividade'], ['api_aponta.atividades.id'], ondelete='RESTRICT'),
-        schema='api_aponta'
+        sa.ForeignKeyConstraint(['id_atividade'], [f'{DB_SCHEMA}.atividades.id'], ondelete='RESTRICT'),
+        schema=DB_SCHEMA
     )
 
     # Create indexes for better query performance
@@ -45,63 +56,63 @@ def upgrade() -> None:
         'ix_api_aponta_apontamentos_id',
         'apontamentos',
         ['id'],
-        schema='api_aponta'
+        schema=DB_SCHEMA
     )
     op.create_index(
         'ix_api_aponta_apontamentos_work_item_id',
         'apontamentos',
         ['work_item_id'],
-        schema='api_aponta'
+        schema=DB_SCHEMA
     )
     op.create_index(
         'ix_api_aponta_apontamentos_project_id',
         'apontamentos',
         ['project_id'],
-        schema='api_aponta'
+        schema=DB_SCHEMA
     )
     op.create_index(
         'ix_api_aponta_apontamentos_organization_name',
         'apontamentos',
         ['organization_name'],
-        schema='api_aponta'
+        schema=DB_SCHEMA
     )
     op.create_index(
         'ix_api_aponta_apontamentos_data_apontamento',
         'apontamentos',
         ['data_apontamento'],
-        schema='api_aponta'
+        schema=DB_SCHEMA
     )
     op.create_index(
         'ix_api_aponta_apontamentos_id_atividade',
         'apontamentos',
         ['id_atividade'],
-        schema='api_aponta'
+        schema=DB_SCHEMA
     )
     op.create_index(
         'ix_api_aponta_apontamentos_usuario_id',
         'apontamentos',
         ['usuario_id'],
-        schema='api_aponta'
+        schema=DB_SCHEMA
     )
     # Composite index for common queries (work item + organization + project)
     op.create_index(
         'ix_api_aponta_apontamentos_work_item_org_project',
         'apontamentos',
         ['work_item_id', 'organization_name', 'project_id'],
-        schema='api_aponta'
+        schema=DB_SCHEMA
     )
 
 
 def downgrade() -> None:
     # Drop indexes
-    op.drop_index('ix_api_aponta_apontamentos_work_item_org_project', table_name='apontamentos', schema='api_aponta')
-    op.drop_index('ix_api_aponta_apontamentos_usuario_id', table_name='apontamentos', schema='api_aponta')
-    op.drop_index('ix_api_aponta_apontamentos_id_atividade', table_name='apontamentos', schema='api_aponta')
-    op.drop_index('ix_api_aponta_apontamentos_data_apontamento', table_name='apontamentos', schema='api_aponta')
-    op.drop_index('ix_api_aponta_apontamentos_organization_name', table_name='apontamentos', schema='api_aponta')
-    op.drop_index('ix_api_aponta_apontamentos_project_id', table_name='apontamentos', schema='api_aponta')
-    op.drop_index('ix_api_aponta_apontamentos_work_item_id', table_name='apontamentos', schema='api_aponta')
-    op.drop_index('ix_api_aponta_apontamentos_id', table_name='apontamentos', schema='api_aponta')
+    op.drop_index('ix_api_aponta_apontamentos_work_item_org_project', table_name='apontamentos', schema=DB_SCHEMA)
+    op.drop_index('ix_api_aponta_apontamentos_usuario_id', table_name='apontamentos', schema=DB_SCHEMA)
+    op.drop_index('ix_api_aponta_apontamentos_id_atividade', table_name='apontamentos', schema=DB_SCHEMA)
+    op.drop_index('ix_api_aponta_apontamentos_data_apontamento', table_name='apontamentos', schema=DB_SCHEMA)
+    op.drop_index('ix_api_aponta_apontamentos_organization_name', table_name='apontamentos', schema=DB_SCHEMA)
+    op.drop_index('ix_api_aponta_apontamentos_project_id', table_name='apontamentos', schema=DB_SCHEMA)
+    op.drop_index('ix_api_aponta_apontamentos_work_item_id', table_name='apontamentos', schema=DB_SCHEMA)
+    op.drop_index('ix_api_aponta_apontamentos_id', table_name='apontamentos', schema=DB_SCHEMA)
 
     # Drop table
-    op.drop_table('apontamentos', schema='api_aponta')
+    op.drop_table('apontamentos', schema=DB_SCHEMA)

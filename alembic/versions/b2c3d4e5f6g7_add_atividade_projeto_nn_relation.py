@@ -13,12 +13,23 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import UUID
+import sys
+import os
+
+# Adicionar o diretório raiz ao path para importar app.config
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+from app.config import get_settings
 
 # revision identifiers, used by Alembic.
 revision: str = 'b2c3d4e5f6g7'
 down_revision: Union[str, None] = 'a1b2c3d4e5f6'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
+
+# Obter o schema dinamicamente
+settings = get_settings()
+DB_SCHEMA = settings.database_schema
 
 
 def upgrade() -> None:
@@ -29,10 +40,10 @@ def upgrade() -> None:
         sa.Column('id_atividade', UUID(as_uuid=True), nullable=False),
         sa.Column('id_projeto', UUID(as_uuid=True), nullable=False),
         sa.Column('criado_em', sa.DateTime(), server_default=sa.func.now(), nullable=False),
-        sa.ForeignKeyConstraint(['id_atividade'], ['api_aponta.atividades.id'], ondelete='CASCADE'),
-        sa.ForeignKeyConstraint(['id_projeto'], ['api_aponta.projetos.id'], ondelete='CASCADE'),
+        sa.ForeignKeyConstraint(['id_atividade'], [f'{DB_SCHEMA}.atividades.id'], ondelete='CASCADE'),
+        sa.ForeignKeyConstraint(['id_projeto'], [f'{DB_SCHEMA}.projetos.id'], ondelete='CASCADE'),
         sa.UniqueConstraint('id_atividade', 'id_projeto', name='uq_atividade_projeto'),
-        schema='api_aponta'
+        schema=DB_SCHEMA
     )
 
     # Create indexes for better query performance
@@ -40,20 +51,20 @@ def upgrade() -> None:
         'ix_api_aponta_atividade_projeto_id_atividade',
         'atividade_projeto',
         ['id_atividade'],
-        schema='api_aponta'
+        schema=DB_SCHEMA
     )
     op.create_index(
         'ix_api_aponta_atividade_projeto_id_projeto',
         'atividade_projeto',
         ['id_projeto'],
-        schema='api_aponta'
+        schema=DB_SCHEMA
     )
 
     # 2. Migrate existing data from atividades.id_projeto to the junction table
-    op.execute("""
-        INSERT INTO api_aponta.atividade_projeto (id_atividade, id_projeto)
+    op.execute(f"""
+        INSERT INTO {DB_SCHEMA}.atividade_projeto (id_atividade, id_projeto)
         SELECT id, id_projeto
-        FROM api_aponta.atividades
+        FROM {DB_SCHEMA}.atividades
         WHERE id_projeto IS NOT NULL
     """)
 
@@ -61,11 +72,11 @@ def upgrade() -> None:
     op.drop_index(
         'ix_api_aponta_atividades_id_projeto',
         table_name='atividades',
-        schema='api_aponta'
+        schema=DB_SCHEMA
     )
 
     # 4. Drop the id_projeto column from atividades
-    op.drop_column('atividades', 'id_projeto', schema='api_aponta')
+    op.drop_column('atividades', 'id_projeto', schema=DB_SCHEMA)
 
 
 def downgrade() -> None:
@@ -78,15 +89,15 @@ def downgrade() -> None:
             nullable=True,
             comment='Project ID from Azure Boards (Azure DevOps)'
         ),
-        schema='api_aponta'
+        schema=DB_SCHEMA
     )
 
     # 2. Restore data from junction table (takes first project if multiple)
-    op.execute("""
-        UPDATE api_aponta.atividades a
+    op.execute(f"""
+        UPDATE {DB_SCHEMA}.atividades a
         SET id_projeto = (
             SELECT ap.id_projeto
-            FROM api_aponta.atividade_projeto ap
+            FROM {DB_SCHEMA}.atividade_projeto ap
             WHERE ap.id_atividade = a.id
             LIMIT 1
         )
@@ -97,7 +108,7 @@ def downgrade() -> None:
         'atividades',
         'id_projeto',
         nullable=False,
-        schema='api_aponta'
+        schema=DB_SCHEMA
     )
 
     # 4. Recreate the index on id_projeto
@@ -105,20 +116,20 @@ def downgrade() -> None:
         'ix_api_aponta_atividades_id_projeto',
         'atividades',
         ['id_projeto'],
-        schema='api_aponta'
+        schema=DB_SCHEMA
     )
 
     # 5. Drop indexes from junction table
     op.drop_index(
         'ix_api_aponta_atividade_projeto_id_projeto',
         table_name='atividade_projeto',
-        schema='api_aponta'
+        schema=DB_SCHEMA
     )
     op.drop_index(
         'ix_api_aponta_atividade_projeto_id_atividade',
         table_name='atividade_projeto',
-        schema='api_aponta'
+        schema=DB_SCHEMA
     )
 
     # 6. Drop the junction table
-    op.drop_table('atividade_projeto', schema='api_aponta')
+    op.drop_table('atividade_projeto', schema=DB_SCHEMA)
