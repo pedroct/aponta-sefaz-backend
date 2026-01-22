@@ -66,5 +66,13 @@ jobs:
           
       - name: Verificar deploy
         run: |
-          sleep 15
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "docker exec api-aponta-staging curl -sf http://localhost:8000/api/v1 || exit 1"
+          echo "Aguardando inicialização da API (20s)..."
+          sleep 20
+          
+          if ! ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "docker exec api-aponta-staging curl -sf http://localhost:8000/api/v1"; then
+            echo "::error::Health check falhou! Obtendo logs do container..."
+            ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "docker logs api-aponta-staging --tail 100"
+            exit 1
+          fi
+          
+          echo "✅ Deploy verificado com sucesso!"
