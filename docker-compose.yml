@@ -37,6 +37,7 @@ services:
     environment:
       - ENVIRONMENT=production
       - API_DEBUG=false
+      - DATABASE_SCHEMA=aponta_sefaz
       - TZ=America/Fortaleza
     depends_on:
       postgres:
