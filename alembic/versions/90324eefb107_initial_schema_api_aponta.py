@@ -37,10 +37,12 @@ def upgrade() -> None:
     # Criar schema se não existir
     try:
         bind.execute(sa.text(f"CREATE SCHEMA IF NOT EXISTS {DB_SCHEMA}"))
+        bind.commit()
     except Exception:
         pass  # Schema pode já existir
     
-    existing_tables = inspector.get_table_names()
+    # Verificar tabelas existentes no schema correto
+    existing_tables = inspector.get_table_names(schema=DB_SCHEMA)
 
     if 'atividades' not in existing_tables:
         op.create_table('atividades',
