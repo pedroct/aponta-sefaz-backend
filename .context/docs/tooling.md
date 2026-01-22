@@ -1,18 +1,48 @@
-# Ferramentas
+---
+type: doc
+name: tooling
+description: Scripts, IDE settings, automation, and developer productivity tips
+category: tooling
+generated: 2026-01-22
+status: unfilled
+scaffoldVersion: "2.0.0"
+---
+## Tooling & Productivity Guide
 
-## Infra
-- Docker e Docker Compose
-- Nginx (config em `nginx/nginx.conf`)
-- CloudFlare (docs em `CLOUDFLARE_SETUP.md`)
+<!-- Collect the scripts, automation, and editor settings that keep contributors efficient. -->
 
-## Banco
-- Alembic para migracoes
-- Scripts de deploy executam migrations
+_Add descriptive content here._
 
-## Scripts
-- `QUICK_DEPLOY.sh`, `manual_deploy.sh`, `scripts/deploy.sh`
-- `scripts/collect_metrics.py` para metricas pontuais
+## Required Tooling
 
-## Qualidade
-- Black, isort, Flake8, MyPy
-- Pytest + pytest-cov
+<!-- List tools with installation instructions, version requirements, and what they power. -->
+
+- _Item 1_
+- _Item 2_
+- _Item 3_
+
+## Recommended Automation
+
+<!-- Document pre-commit hooks, linting/formatting commands, code generators, or scaffolding scripts. Include shortcuts or watch modes. -->
+
+_Add descriptive content here._
+
+## IDE / Editor Setup
+
+<!-- List extensions or plugins that catch issues early. Share snippets, templates, or workspace settings. -->
+
+- _Item 1 (optional)_
+- _Item 2_
+- _Item 3_
+
+## Productivity Tips
+
+<!-- Document terminal aliases, container workflows, or local emulators. Link to shared scripts or dotfiles. -->
+
+_Add descriptive content here (optional)._
+
+## Related Resources
+
+<!-- Link to related documents for cross-navigation. -->
+
+- [development-workflow.md](./development-workflow.md)

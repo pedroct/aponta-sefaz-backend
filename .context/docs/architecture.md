@@ -1,34 +1,131 @@
-# Arquitetura
+---
+type: doc
+name: architecture
+description: System architecture, layers, patterns, and design decisions
+category: architecture
+generated: 2026-01-22
+status: filled
+scaffoldVersion: "2.0.0"
+---
+## Architecture Notes
 
-## Visao geral
-A arquitetura segue camadas (routers -> services -> repositories -> models), com FastAPI rodando em container e exposta via Nginx. O trafego externo passa pelo CloudFlare com SSL/TLS.
+O Sistema Aponta segue uma arquitetura de API REST com separação clara de responsabilidades, integrado ao ecossistema Azure DevOps.
 
-## Componentes principais
-- **CloudFlare**: TLS, protecao e proxy.
-- **Nginx**: reverse proxy, rate limiting e compressao.
-- **FastAPI** (`app/main.py`): API, auth e roteamento.
-- **Banco** (PostgreSQL 15): persistencia.
-- **Migracoes** (`alembic/`): versionamento de schema.
+## System Architecture Overview
 
-## Fluxo de dados (alto nivel)
-1. Cliente -> CloudFlare -> Nginx
-2. Nginx -> FastAPI
-3. FastAPI valida, aplica regras e acessa repositorios
-4. Repositorios interagem com PostgreSQL
-5. Resposta retorna via Nginx/CloudFlare
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        Azure DevOps                              │
+│  ┌─────────────────┐                                            │
+│  │  Extensão Aponta │◄──── vss-extension.json                   │
+│  │  (timesheet.html)│                                            │
+│  └────────┬────────┘                                            │
+│           │ iframe                                               │
+│           ▼                                                      │
+│  ┌─────────────────┐                                            │
+│  │ Frontend React  │◄──── https://staging-aponta.treit.com.br   │
+│  │ (Vite + TS)     │                                            │
+│  └────────┬────────┘                                            │
+└───────────┼─────────────────────────────────────────────────────┘
+            │ HTTPS (App Token JWT)
+            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                        VPS (92.112.178.252)                      │
+│                                                                  │
+│  ┌─────────────────┐     ┌─────────────────┐                    │
+│  │     Nginx       │────▶│  API FastAPI    │                    │
+│  │  (Proxy Reverso)│     │  (Python 3.12)  │                    │
+│  └─────────────────┘     └────────┬────────┘                    │
+│                                   │                              │
+│                          ┌────────┴────────┐                    │
+│                          ▼                 ▼                    │
+│                   ┌──────────┐      ┌──────────────┐            │
+│                   │PostgreSQL│      │ Azure DevOps │            │
+│                   │   (DB)   │      │     API      │            │
+│                   └──────────┘      └──────────────┘            │
+│                                     (via PAT)                    │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-## Padroes e decisoes
-- **Arquitetura em camadas** para separar responsabilidades.
-- **Repository pattern** em `app/repositories/`.
-- **Schemas Pydantic** em `app/schemas/`.
-- **Settings** centralizado em `app/config.py`.
+## Architectural Layers
 
-## Stack e racional
-- **FastAPI + Pydantic**: performance e validacao automatica.
-- **SQLAlchemy + Alembic**: ORM e migracoes consistentes.
-- **Docker Compose**: ambiente repetivel.
-- **Nginx + CloudFlare**: seguranca e performance.
+| Layer | Purpose | Directory |
+|-------|---------|-----------|
+| **Routers** | HTTP endpoints, request/response handling | `app/routers/` |
+| **Services** | Business logic, Azure DevOps integration | `app/services/` |
+| **Repositories** | Data access abstraction | `app/repositories/` |
+| **Models** | SQLAlchemy ORM definitions | `app/models/` |
+| **Schemas** | Pydantic validation | `app/schemas/` |
 
-## Referencias
-- `ARCHITECTURE.md`
-- `README.md`
+> See [`codebase-map.json`](./codebase-map.json) for complete symbol counts and dependency graphs.
+
+## Detected Design Patterns
+
+| Pattern | Confidence | Locations | Description |
+|---------|------------|-----------|-------------|
+| Repository | 95% | `app/repositories/` | Abstração de acesso a dados |
+| Service Layer | 95% | `app/services/` | Lógica de negócio isolada |
+| Dependency Injection | 90% | `Depends()` FastAPI | Injeção de dependências |
+| DTO/Schema | 90% | `app/schemas/` | Validação e serialização |
+
+## Entry Points
+
+- [`app/main.py`](../../app/main.py#L1) — FastAPI app initialization, CORS, routers
+- [`app/auth.py`](../../app/auth.py#L1) — Authentication middleware (JWT + PAT)
+- [`alembic/env.py`](../../alembic/env.py#L1) — Migration environment
+
+## Public API
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/timesheet` | GET | Grade semanal de apontamentos |
+| `/api/v1/apontamentos` | CRUD | Gerenciamento de apontamentos |
+| `/api/v1/atividades` | CRUD | Tipos de atividades |
+| `/api/v1/projetos` | CRUD | Projetos cadastrados |
+| `/api/v1/work-items/search` | GET | Busca Work Items no Azure |
+| `/api/v1/user` | GET | Perfil do usuário autenticado |
+
+## External Service Dependencies
+
+| Service | Purpose | Auth Method |
+|---------|---------|-------------|
+| **Azure DevOps API** | Work Items, WIQL, User Profile | PAT (Basic Auth) |
+| **PostgreSQL** | Data persistence | Connection string |
+
+## Key Decisions & Trade-offs
+
+### App Token JWT vs PAT
+- **App Token JWT**: Usado apenas para identificar o usuário (não pode chamar APIs do Azure)
+- **PAT do Backend**: Usado para todas as chamadas à API do Azure DevOps
+
+### Schema por Ambiente
+- Staging usa `aponta_sefaz_staging`
+- Produção usa `aponta_sefaz`
+- Configurado via `DATABASE_SCHEMA` environment variable
+
+## Docker Containers
+
+| Container | Image | Port | Purpose |
+|-----------|-------|------|---------|
+| `api-aponta-staging` | `staging-api:latest` | 8001 | Backend Staging |
+| `api-aponta-prod` | `production-api:latest` | 8000 | Backend Produção |
+| `postgres-aponta` | `postgres:15-alpine` | 5432 | Database |
+| `nginx-aponta` | `nginx:alpine` | 80/443 | Proxy Reverso |
+
+## Database Schema
+
+### Tabelas Principais
+
+| Tabela | Descrição |
+|--------|-----------|
+| `apontamentos` | Registros de horas apontadas |
+| `atividades` | Tipos de atividades (Planning, Development, etc.) |
+| `projetos` | Projetos cadastrados |
+| `atividade_projeto` | Relação N:N entre atividades e projetos |
+| `alembic_version` | Controle de migrações |
+
+## Related Resources
+
+- [project-overview.md](./project-overview.md)
+- [security.md](./security.md)
+- [data-flow.md](./data-flow.md)

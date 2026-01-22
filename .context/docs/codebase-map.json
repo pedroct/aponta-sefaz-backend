@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "generated": "2026-01-16T20:53:02.996Z",
+  "generated": "2026-01-22T18:16:00.971Z",
   "stack": {
     "primaryLanguage": "python",
     "languages": [
@@ -20,18 +20,14 @@
     "hasCI": true
   },
   "structure": {
-    "totalFiles": 87,
+    "totalFiles": 188,
     "topDirectories": [
       {
         "name": "alembic",
-        "fileCount": 10
+        "fileCount": 8
       },
       {
         "name": "alembic.ini",
-        "fileCount": 1
-      },
-      {
-        "name": "API_DOCUMENTATION.md",
         "fileCount": 1
       },
       {
@@ -40,38 +36,34 @@
       },
       {
         "name": "app",
-        "fileCount": 41
+        "fileCount": 71
       },
       {
-        "name": "ARCHITECTURE.md",
+        "name": "apply_fixes.py",
         "fileCount": 1
       },
       {
-        "name": "CHANGELOG.md",
+        "name": "backend.tar.gz",
         "fileCount": 1
       },
       {
-        "name": "CLOUDFLARE_FINAL_SETUP.md",
+        "name": "contexto-apontamentos.md",
         "fileCount": 1
       },
       {
-        "name": "CLOUDFLARE_SETUP.md",
+        "name": "deploy",
+        "fileCount": 7
+      },
+      {
+        "name": "deploy.sh",
         "fileCount": 1
       },
       {
-        "name": "CONTRIBUTING.md",
+        "name": "docker-compose.local.yml",
         "fileCount": 1
       },
       {
-        "name": "COPY_FILES_TO_VPS.md",
-        "fileCount": 1
-      },
-      {
-        "name": "DEPLOY_INSTRUCTIONS.md",
-        "fileCount": 1
-      },
-      {
-        "name": "DEPLOYMENT_SETUP.md",
+        "name": "docker-compose.staging.yml",
         "fileCount": 1
       },
       {
@@ -83,6 +75,22 @@
         "fileCount": 1
       },
       {
+        "name": "docs",
+        "fileCount": 55
+      },
+      {
+        "name": "extension",
+        "fileCount": 3
+      },
+      {
+        "name": "gitlab-runner_amd64.deb",
+        "fileCount": 1
+      },
+      {
+        "name": "gitlab-runner-helper-images_amd64.deb",
+        "fileCount": 1
+      },
+      {
         "name": "manual_deploy.sh",
         "fileCount": 1
       },
@@ -91,8 +99,16 @@
         "fileCount": 1
       },
       {
+        "name": "mcp_config.json:Zone.Identifier",
+        "fileCount": 1
+      },
+      {
         "name": "nginx",
-        "fileCount": 4
+        "fileCount": 7
+      },
+      {
+        "name": "patch_services.py",
+        "fileCount": 1
       },
       {
         "name": "pytest.ini",
@@ -112,70 +128,78 @@
       },
       {
         "name": "scripts",
-        "fileCount": 4
-      },
-      {
-        "name": "SECURITY.md",
-        "fileCount": 1
-      },
-      {
-        "name": "test-report.json",
-        "fileCount": 1
+        "fileCount": 11
       },
       {
         "name": "tests",
         "fileCount": 6
-      },
-      {
-        "name": "WORKSPACE_CONTEXT.md",
-        "fileCount": 1
       }
     ],
     "languageDistribution": [
       {
+        "extension": ".md",
+        "count": 59
+      },
+      {
         "extension": ".py",
-        "count": 29
+        "count": 49
       },
       {
         "extension": ".pyc",
-        "count": 28
-      },
-      {
-        "extension": ".md",
-        "count": 13
+        "count": 38
       },
       {
         "extension": ".sh",
-        "count": 4
+        "count": 11
+      },
+      {
+        "extension": ".yml",
+        "count": 6
+      },
+      {
+        "extension": ".conf",
+        "count": 5
       },
       {
         "extension": ".json",
-        "count": 2
+        "count": 3
+      },
+      {
+        "extension": ".sql",
+        "count": 3
       },
       {
         "extension": ".ini",
         "count": 2
       },
       {
-        "extension": ".pem",
+        "extension": ".identifier",
         "count": 2
-      },
-      {
-        "extension": ".yml",
-        "count": 1
-      },
-      {
-        "extension": ".code-workspace",
-        "count": 1
-      },
-      {
-        "extension": ".txt",
-        "count": 1
       }
     ]
   },
   "architecture": {
     "layers": [
+      {
+        "name": "Services",
+        "description": "Business logic and orchestration",
+        "directories": [
+          ".",
+          "app/services"
+        ],
+        "symbolCount": 13,
+        "dependsOn": []
+      },
+      {
+        "name": "Repositories",
+        "description": "Data access and persistence",
+        "directories": [
+          "app",
+          "app/repositories"
+        ],
+        "symbolCount": 6,
+        "dependsOn": []
+      },
       {
         "name": "Config",
         "description": "Configuration and constants",
@@ -186,42 +210,23 @@
         "dependsOn": []
       },
       {
-        "name": "Repositories",
-        "description": "Data access and persistence",
+        "name": "Models",
+        "description": "Data structures and domain objects",
         "directories": [
-          "app",
-          "app\\repositories"
+          "app/schemas",
+          "app/models"
         ],
-        "symbolCount": 2,
+        "symbolCount": 34,
         "dependsOn": []
       },
       {
         "name": "Controllers",
         "description": "Request handling and routing",
         "directories": [
-          "alembic\\versions",
-          "app\\routers"
+          "app/routers",
+          "alembic/versions"
         ],
-        "symbolCount": 10,
-        "dependsOn": []
-      },
-      {
-        "name": "Models",
-        "description": "Data structures and domain objects",
-        "directories": [
-          "app\\schemas",
-          "app\\models"
-        ],
-        "symbolCount": 8,
-        "dependsOn": []
-      },
-      {
-        "name": "Services",
-        "description": "Business logic and orchestration",
-        "directories": [
-          "app\\services"
-        ],
-        "symbolCount": 2,
+        "symbolCount": 24,
         "dependsOn": []
       }
     ],
@@ -230,13 +235,13 @@
         "name": "Repository",
         "confidence": 0.9,
         "description": "Abstracts data access logic",
-        "occurrences": 1
+        "occurrences": 2
       },
       {
         "name": "Service Layer",
         "confidence": 0.85,
         "description": "Encapsulates business logic in service classes",
-        "occurrences": 2
+        "occurrences": 4
       }
     ],
     "entryPoints": []
@@ -244,101 +249,311 @@
   "symbols": {
     "classes": [
       {
+        "name": "Apontamento",
+        "kind": "class",
+        "file": "app/models/apontamento.py",
+        "line": 14,
+        "exported": true
+      },
+      {
+        "name": "ApontamentoBase",
+        "kind": "class",
+        "file": "app/schemas/apontamento.py",
+        "line": 21,
+        "exported": true
+      },
+      {
+        "name": "ApontamentoCreate",
+        "kind": "class",
+        "file": "app/schemas/apontamento.py",
+        "line": 74,
+        "exported": true
+      },
+      {
+        "name": "ApontamentoDia",
+        "kind": "class",
+        "file": "app/schemas/timesheet.py",
+        "line": 11,
+        "exported": true
+      },
+      {
+        "name": "ApontamentoListResponse",
+        "kind": "class",
+        "file": "app/schemas/apontamento.py",
+        "line": 212,
+        "exported": true
+      },
+      {
+        "name": "ApontamentoRepository",
+        "kind": "class",
+        "file": "app/repositories/apontamento.py",
+        "line": 60,
+        "exported": true
+      },
+      {
+        "name": "ApontamentoResponse",
+        "kind": "class",
+        "file": "app/schemas/apontamento.py",
+        "line": 170,
+        "exported": true
+      },
+      {
+        "name": "ApontamentoResumo",
+        "kind": "class",
+        "file": "app/schemas/apontamento.py",
+        "line": 237,
+        "exported": true
+      },
+      {
+        "name": "ApontamentoService",
+        "kind": "class",
+        "file": "app/services/apontamento_service.py",
+        "line": 23,
+        "exported": true
+      },
+      {
+        "name": "ApontamentoUpdate",
+        "kind": "class",
+        "file": "app/schemas/apontamento.py",
+        "line": 117,
+        "exported": true
+      },
+      {
         "name": "Atividade",
         "kind": "class",
-        "file": "app\\models\\atividade.py",
+        "file": "app/models/atividade.py",
         "line": 13,
         "exported": true
       },
       {
         "name": "AtividadeBase",
         "kind": "class",
-        "file": "app\\schemas\\atividade.py",
-        "line": 10,
+        "file": "app/schemas/atividade.py",
+        "line": 19,
+        "exported": true
+      },
+      {
+        "name": "AtividadeCatalogItem",
+        "kind": "class",
+        "file": "app/schemas/atividade.py",
+        "line": 117,
+        "exported": true
+      },
+      {
+        "name": "AtividadeCatalogResponse",
+        "kind": "class",
+        "file": "app/schemas/atividade.py",
+        "line": 127,
         "exported": true
       },
       {
         "name": "AtividadeCreate",
         "kind": "class",
-        "file": "app\\schemas\\atividade.py",
-        "line": 23,
+        "file": "app/schemas/atividade.py",
+        "line": 31,
         "exported": true
       },
       {
         "name": "AtividadeListResponse",
         "kind": "class",
-        "file": "app\\schemas\\atividade.py",
-        "line": 60,
+        "file": "app/schemas/atividade.py",
+        "line": 110,
+        "exported": true
+      },
+      {
+        "name": "AtividadeProjeto",
+        "kind": "class",
+        "file": "app/models/atividade_projeto.py",
+        "line": 13,
         "exported": true
       },
       {
         "name": "AtividadeRepository",
         "kind": "class",
-        "file": "app\\repositories\\atividade.py",
-        "line": 11,
+        "file": "app/repositories/atividade.py",
+        "line": 14,
         "exported": true
       },
       {
         "name": "AtividadeResponse",
         "kind": "class",
-        "file": "app\\schemas\\atividade.py",
-        "line": 44,
+        "file": "app/schemas/atividade.py",
+        "line": 86,
+        "exported": true
+      },
+      {
+        "name": "AtividadeSimples",
+        "kind": "class",
+        "file": "app/schemas/apontamento.py",
+        "line": 12,
         "exported": true
       },
       {
         "name": "AtividadeUpdate",
         "kind": "class",
-        "file": "app\\schemas\\atividade.py",
-        "line": 29,
+        "file": "app/schemas/atividade.py",
+        "line": 60,
         "exported": true
       },
       {
         "name": "AzureDevOpsUser",
         "kind": "class",
-        "file": "app\\auth.py",
-        "line": 25,
+        "file": "app/auth.py",
+        "line": 29,
         "exported": true
       },
       {
         "name": "AzureService",
         "kind": "class",
-        "file": "app\\services\\azure.py",
-        "line": 13,
+        "file": "app/services/azure.py",
+        "line": 99,
+        "exported": true
+      },
+      {
+        "name": "CelulaDia",
+        "kind": "class",
+        "file": "app/schemas/timesheet.py",
+        "line": 22,
         "exported": true
       },
       {
         "name": "GUID",
         "kind": "class",
-        "file": "app\\models\\custom_types.py",
+        "file": "app/models/custom_types.py",
         "line": 10,
+        "exported": true
+      },
+      {
+        "name": "ProfileData",
+        "kind": "class",
+        "file": "app/auth.py",
+        "line": 497,
         "exported": true
       },
       {
         "name": "Projeto",
         "kind": "class",
-        "file": "app\\models\\projeto.py",
-        "line": 8,
+        "file": "app/models/projeto.py",
+        "line": 9,
+        "exported": true
+      },
+      {
+        "name": "ProjetoResponse",
+        "kind": "class",
+        "file": "app/schemas/projeto.py",
+        "line": 10,
         "exported": true
       },
       {
         "name": "ProjetoService",
         "kind": "class",
-        "file": "app\\services\\projeto_service.py",
+        "file": "app/services/projeto_service.py",
         "line": 13,
+        "exported": true
+      },
+      {
+        "name": "ProjetoSimples",
+        "kind": "class",
+        "file": "app/schemas/atividade.py",
+        "line": 10,
+        "exported": true
+      },
+      {
+        "name": "ResumoPorAtividade",
+        "kind": "class",
+        "file": "app/schemas/apontamento.py",
+        "line": 221,
+        "exported": true
+      },
+      {
+        "name": "ResumoPorUsuario",
+        "kind": "class",
+        "file": "app/schemas/apontamento.py",
+        "line": 229,
         "exported": true
       },
       {
         "name": "Settings",
         "kind": "class",
-        "file": "app\\config.py",
+        "file": "app/config.py",
         "line": 10,
+        "exported": true
+      },
+      {
+        "name": "StateCategory",
+        "kind": "class",
+        "file": "app/schemas/timesheet.py",
+        "line": 169,
+        "exported": true
+      },
+      {
+        "name": "StateCategoryResponse",
+        "kind": "class",
+        "file": "app/schemas/timesheet.py",
+        "line": 187,
         "exported": true
       },
       {
         "name": "SupabaseClient",
         "kind": "class",
-        "file": "app\\supabase_client.py",
+        "file": "app/supabase_client.py",
         "line": 11,
+        "exported": true
+      },
+      {
+        "name": "TimesheetQueryParams",
+        "kind": "class",
+        "file": "app/schemas/timesheet.py",
+        "line": 144,
+        "exported": true
+      },
+      {
+        "name": "TimesheetResponse",
+        "kind": "class",
+        "file": "app/schemas/timesheet.py",
+        "line": 106,
+        "exported": true
+      },
+      {
+        "name": "TimesheetService",
+        "kind": "class",
+        "file": "app/services/timesheet_service.py",
+        "line": 102,
+        "exported": true
+      },
+      {
+        "name": "TotalDia",
+        "kind": "class",
+        "file": "app/schemas/timesheet.py",
+        "line": 95,
+        "exported": true
+      },
+      {
+        "name": "UserResponse",
+        "kind": "class",
+        "file": "app/schemas/user.py",
+        "line": 8,
+        "exported": true
+      },
+      {
+        "name": "WorkItem",
+        "kind": "class",
+        "file": "app/schemas/work_item.py",
+        "line": 8,
+        "exported": true
+      },
+      {
+        "name": "WorkItemSearchResponse",
+        "kind": "class",
+        "file": "app/schemas/work_item.py",
+        "line": 32,
+        "exported": true
+      },
+      {
+        "name": "WorkItemTimesheet",
+        "kind": "class",
+        "file": "app/schemas/timesheet.py",
+        "line": 37,
         "exported": true
       }
     ],
@@ -347,247 +562,352 @@
       {
         "name": "api_info",
         "kind": "function",
-        "file": "app\\main.py",
-        "line": 108,
+        "file": "app/main.py",
+        "line": 119,
+        "exported": true
+      },
+      {
+        "name": "atualizar_apontamento",
+        "kind": "function",
+        "file": "app/routers/apontamentos.py",
+        "line": 186,
         "exported": true
       },
       {
         "name": "atualizar_atividade",
         "kind": "function",
-        "file": "app\\routers\\atividades.py",
-        "line": 93,
+        "file": "app/routers/atividades.py",
+        "line": 139,
+        "exported": true
+      },
+      {
+        "name": "can_edit_apontamento",
+        "kind": "function",
+        "file": "app/services/timesheet_service.py",
+        "line": 97,
         "exported": true
       },
       {
         "name": "client",
         "kind": "function",
-        "file": "tests\\conftest.py",
+        "file": "tests/conftest.py",
         "line": 56,
         "exported": true
       },
       {
         "name": "collect_metrics",
         "kind": "function",
-        "file": "scripts\\collect_metrics.py",
+        "file": "scripts/collect_metrics.py",
         "line": 42,
+        "exported": true
+      },
+      {
+        "name": "criar_apontamento",
+        "kind": "function",
+        "file": "app/routers/apontamentos.py",
+        "line": 57,
         "exported": true
       },
       {
         "name": "criar_atividade",
         "kind": "function",
-        "file": "app\\routers\\atividades.py",
-        "line": 29,
+        "file": "app/routers/atividades.py",
+        "line": 42,
         "exported": true
       },
       {
         "name": "db_session",
         "kind": "function",
-        "file": "tests\\conftest.py",
+        "file": "tests/conftest.py",
         "line": 46,
         "exported": true
       },
       {
         "name": "downgrade",
         "kind": "function",
-        "file": "alembic\\versions\\90324eefb107_initial_schema_api_aponta.py",
-        "line": 62,
-        "exported": true
-      },
-      {
-        "name": "downgrade",
-        "kind": "function",
-        "file": "alembic\\versions\\a1b2c3d4e5f6_add_criado_por_to_atividades.py",
-        "line": 41,
-        "exported": true
-      },
-      {
-        "name": "downgrade",
-        "kind": "function",
-        "file": "alembic\\versions\\ebd442876620_dummy.py",
+        "file": "alembic/versions/ebd442876620_dummy.py",
         "line": 27,
+        "exported": true
+      },
+      {
+        "name": "downgrade",
+        "kind": "function",
+        "file": "alembic/versions/d4e5f6g7h8i9_alter_apontamentos_duracao.py",
+        "line": 74,
+        "exported": true
+      },
+      {
+        "name": "downgrade",
+        "kind": "function",
+        "file": "alembic/versions/c3d4e5f6g7h8_create_apontamentos_table.py",
+        "line": 106,
+        "exported": true
+      },
+      {
+        "name": "downgrade",
+        "kind": "function",
+        "file": "alembic/versions/b2c3d4e5f6g7_add_atividade_projeto_nn_relation.py",
+        "line": 82,
+        "exported": true
+      },
+      {
+        "name": "downgrade",
+        "kind": "function",
+        "file": "alembic/versions/a1b2c3d4e5f6_add_criado_por_to_atividades.py",
+        "line": 52,
+        "exported": true
+      },
+      {
+        "name": "downgrade",
+        "kind": "function",
+        "file": "alembic/versions/90324eefb107_initial_schema_api_aponta.py",
+        "line": 90,
+        "exported": true
+      },
+      {
+        "name": "duracao_to_decimal",
+        "kind": "function",
+        "file": "app/repositories/apontamento.py",
+        "line": 31,
         "exported": true
       },
       {
         "name": "ensure_schema_exists",
         "kind": "function",
-        "file": "scripts\\collect_metrics.py",
+        "file": "scripts/collect_metrics.py",
         "line": 18,
+        "exported": true
+      },
+      {
+        "name": "ensure_seed_data",
+        "kind": "function",
+        "file": "app/services/seed.py",
+        "line": 19,
+        "exported": true
+      },
+      {
+        "name": "excluir_apontamento",
+        "kind": "function",
+        "file": "app/routers/apontamentos.py",
+        "line": 206,
         "exported": true
       },
       {
         "name": "excluir_atividade",
         "kind": "function",
-        "file": "app\\routers\\atividades.py",
-        "line": 118,
+        "file": "app/routers/atividades.py",
+        "line": 171,
+        "exported": true
+      },
+      {
+        "name": "format_duracao",
+        "kind": "function",
+        "file": "app/repositories/apontamento.py",
+        "line": 45,
         "exported": true
       },
       {
         "name": "get_current_user",
         "kind": "function",
-        "file": "app\\auth.py",
-        "line": 193,
+        "file": "app/auth.py",
+        "line": 590,
         "exported": true
       },
       {
         "name": "get_db",
         "kind": "function",
-        "file": "app\\database.py",
+        "file": "app/database.py",
         "line": 29,
+        "exported": true
+      },
+      {
+        "name": "get_db_schema",
+        "kind": "function",
+        "file": "alembic/versions/90324eefb107_initial_schema_api_aponta.py",
+        "line": 25,
+        "exported": true
+      },
+      {
+        "name": "get_migration_schema",
+        "kind": "function",
+        "file": "alembic/env.py",
+        "line": 37,
+        "exported": true
+      },
+      {
+        "name": "get_official_work_item_icons",
+        "kind": "function",
+        "file": "app/services/azure.py",
+        "line": 19,
+        "exported": true
+      },
+      {
+        "name": "get_service",
+        "kind": "function",
+        "file": "app/routers/timesheet.py",
+        "line": 21,
+        "exported": true
+      },
+      {
+        "name": "get_service",
+        "kind": "function",
+        "file": "app/routers/apontamentos.py",
+        "line": 24,
         "exported": true
       },
       {
         "name": "get_settings",
         "kind": "function",
-        "file": "app\\config.py",
-        "line": 114,
+        "file": "app/config.py",
+        "line": 145,
+        "exported": true
+      },
+      {
+        "name": "get_state_category",
+        "kind": "function",
+        "file": "app/services/timesheet_service.py",
+        "line": 92,
         "exported": true
       },
       {
         "name": "get_supabase",
         "kind": "function",
-        "file": "app\\supabase_client.py",
+        "file": "app/supabase_client.py",
         "line": 45,
         "exported": true
       },
       {
         "name": "get_supabase_admin",
         "kind": "function",
-        "file": "app\\supabase_client.py",
+        "file": "app/supabase_client.py",
         "line": 55,
+        "exported": true
+      },
+      {
+        "name": "get_timesheet",
+        "kind": "function",
+        "file": "app/routers/timesheet.py",
+        "line": 58,
+        "exported": true
+      },
+      {
+        "name": "get_user",
+        "kind": "function",
+        "file": "app/routers/user.py",
+        "line": 13,
+        "exported": true
+      },
+      {
+        "name": "get_week_dates",
+        "kind": "function",
+        "file": "app/services/timesheet_service.py",
+        "line": 68,
+        "exported": true
+      },
+      {
+        "name": "get_work_item_icon_data_uri",
+        "kind": "function",
+        "file": "app/services/azure.py",
+        "line": 45,
+        "exported": true
+      },
+      {
+        "name": "get_work_item_state_category",
+        "kind": "function",
+        "file": "app/routers/timesheet.py",
+        "line": 99,
         "exported": true
       },
       {
         "name": "global_exception_handler",
         "kind": "function",
-        "file": "app\\main.py",
-        "line": 56,
+        "file": "app/main.py",
+        "line": 59,
         "exported": true
       },
       {
         "name": "health_check",
         "kind": "function",
-        "file": "app\\main.py",
-        "line": 96,
+        "file": "app/main.py",
+        "line": 107,
+        "exported": true
+      },
+      {
+        "name": "info_work_item_azure",
+        "kind": "function",
+        "file": "app/routers/apontamentos.py",
+        "line": 137,
         "exported": true
       },
       {
         "name": "lifespan",
         "kind": "function",
-        "file": "app\\main.py",
-        "line": 27,
+        "file": "app/main.py",
+        "line": 28,
         "exported": true
       },
       {
         "name": "list_projects",
         "kind": "function",
-        "file": "app\\routers\\projetos.py",
-        "line": 23,
+        "file": "app/routers/projetos.py",
+        "line": 24,
+        "exported": true
+      },
+      {
+        "name": "listar_apontamentos_work_item",
+        "kind": "function",
+        "file": "app/routers/apontamentos.py",
+        "line": 75,
         "exported": true
       },
       {
         "name": "listar_atividades",
         "kind": "function",
-        "file": "app\\routers\\atividades.py",
-        "line": 47,
+        "file": "app/routers/atividades.py",
+        "line": 72,
         "exported": true
       },
       {
         "name": "listar_projetos",
         "kind": "function",
-        "file": "app\\routers\\integracao.py",
+        "file": "app/routers/integracao.py",
         "line": 9,
+        "exported": true
+      },
+      {
+        "name": "obter_apontamento",
+        "kind": "function",
+        "file": "app/routers/apontamentos.py",
+        "line": 157,
         "exported": true
       },
       {
         "name": "obter_atividade",
         "kind": "function",
-        "file": "app\\routers\\atividades.py",
-        "line": 69,
+        "file": "app/routers/atividades.py",
+        "line": 109,
         "exported": true
       },
       {
-        "name": "run_migrations_offline",
+        "name": "parse_duracao",
         "kind": "function",
-        "file": "alembic\\env.py",
-        "line": 37,
+        "file": "app/repositories/apontamento.py",
+        "line": 15,
         "exported": true
       },
       {
-        "name": "run_migrations_online",
+        "name": "patch_apontamento_service",
         "kind": "function",
-        "file": "alembic\\env.py",
-        "line": 51,
+        "file": "patch_services.py",
+        "line": 220,
         "exported": true
       },
       {
-        "name": "sync_projects",
+        "name": "patch_azure_service",
         "kind": "function",
-        "file": "app\\routers\\projetos.py",
-        "line": 11,
+        "file": "patch_services.py",
+        "line": 393,
         "exported": true
-      },
-      {
-        "name": "test_api_info",
-        "kind": "function",
-        "file": "tests\\test_health.py",
-        "line": 26,
-        "exported": true
-      },
-      {
-        "name": "test_db",
-        "kind": "function",
-        "file": "tests\\conftest.py",
-        "line": 34,
-        "exported": true
-      },
-      {
-        "name": "test_health_check",
-        "kind": "function",
-        "file": "tests\\test_health.py",
-        "line": 8,
-        "exported": true
-      },
-      {
-        "name": "test_root_endpoint",
-        "kind": "function",
-        "file": "tests\\test_health.py",
-        "line": 18,
-        "exported": true
-      },
-      {
-        "name": "upgrade",
-        "kind": "function",
-        "file": "alembic\\versions\\90324eefb107_initial_schema_api_aponta.py",
-        "line": 20,
-        "exported": true
-      },
-      {
-        "name": "upgrade",
-        "kind": "function",
-        "file": "alembic\\versions\\a1b2c3d4e5f6_add_criado_por_to_atividades.py",
-        "line": 19,
-        "exported": true
-      },
-      {
-        "name": "upgrade",
-        "kind": "function",
-        "file": "alembic\\versions\\ebd442876620_dummy.py",
-        "line": 20,
-        "exported": true
-      },
-      {
-        "name": "validate_azure_token",
-        "kind": "function",
-        "file": "app\\auth.py",
-        "line": 44,
-        "exported": true
-      },
-      {
-        "name": "_fetch_user_profile",
-        "kind": "function",
-        "file": "app\\auth.py",
-        "line": 93,
-        "exported": false
       }
     ],
     "types": [],
@@ -597,337 +917,351 @@
     {
       "name": "api_info",
       "kind": "function",
-      "file": "app\\main.py",
-      "line": 108,
+      "file": "app/main.py",
+      "line": 119,
+      "exported": true
+    },
+    {
+      "name": "Apontamento",
+      "kind": "class",
+      "file": "app/models/apontamento.py",
+      "line": 14,
+      "exported": true
+    },
+    {
+      "name": "ApontamentoBase",
+      "kind": "class",
+      "file": "app/schemas/apontamento.py",
+      "line": 21,
+      "exported": true
+    },
+    {
+      "name": "ApontamentoCreate",
+      "kind": "class",
+      "file": "app/schemas/apontamento.py",
+      "line": 74,
+      "exported": true
+    },
+    {
+      "name": "ApontamentoDia",
+      "kind": "class",
+      "file": "app/schemas/timesheet.py",
+      "line": 11,
+      "exported": true
+    },
+    {
+      "name": "ApontamentoListResponse",
+      "kind": "class",
+      "file": "app/schemas/apontamento.py",
+      "line": 212,
+      "exported": true
+    },
+    {
+      "name": "ApontamentoRepository",
+      "kind": "class",
+      "file": "app/repositories/apontamento.py",
+      "line": 60,
+      "exported": true
+    },
+    {
+      "name": "ApontamentoResponse",
+      "kind": "class",
+      "file": "app/schemas/apontamento.py",
+      "line": 170,
+      "exported": true
+    },
+    {
+      "name": "ApontamentoResumo",
+      "kind": "class",
+      "file": "app/schemas/apontamento.py",
+      "line": 237,
+      "exported": true
+    },
+    {
+      "name": "ApontamentoService",
+      "kind": "class",
+      "file": "app/services/apontamento_service.py",
+      "line": 23,
+      "exported": true
+    },
+    {
+      "name": "ApontamentoUpdate",
+      "kind": "class",
+      "file": "app/schemas/apontamento.py",
+      "line": 117,
       "exported": true
     },
     {
       "name": "Atividade",
       "kind": "class",
-      "file": "app\\models\\atividade.py",
+      "file": "app/models/atividade.py",
       "line": 13,
       "exported": true
     },
     {
       "name": "AtividadeBase",
       "kind": "class",
-      "file": "app\\schemas\\atividade.py",
-      "line": 10,
+      "file": "app/schemas/atividade.py",
+      "line": 19,
+      "exported": true
+    },
+    {
+      "name": "AtividadeCatalogItem",
+      "kind": "class",
+      "file": "app/schemas/atividade.py",
+      "line": 117,
+      "exported": true
+    },
+    {
+      "name": "AtividadeCatalogResponse",
+      "kind": "class",
+      "file": "app/schemas/atividade.py",
+      "line": 127,
       "exported": true
     },
     {
       "name": "AtividadeCreate",
       "kind": "class",
-      "file": "app\\schemas\\atividade.py",
-      "line": 23,
+      "file": "app/schemas/atividade.py",
+      "line": 31,
       "exported": true
     },
     {
       "name": "AtividadeListResponse",
       "kind": "class",
-      "file": "app\\schemas\\atividade.py",
-      "line": 60,
+      "file": "app/schemas/atividade.py",
+      "line": 110,
+      "exported": true
+    },
+    {
+      "name": "AtividadeProjeto",
+      "kind": "class",
+      "file": "app/models/atividade_projeto.py",
+      "line": 13,
       "exported": true
     },
     {
       "name": "AtividadeRepository",
       "kind": "class",
-      "file": "app\\repositories\\atividade.py",
-      "line": 11,
+      "file": "app/repositories/atividade.py",
+      "line": 14,
       "exported": true
     },
     {
       "name": "AtividadeResponse",
       "kind": "class",
-      "file": "app\\schemas\\atividade.py",
-      "line": 44,
+      "file": "app/schemas/atividade.py",
+      "line": 86,
+      "exported": true
+    },
+    {
+      "name": "AtividadeSimples",
+      "kind": "class",
+      "file": "app/schemas/apontamento.py",
+      "line": 12,
       "exported": true
     },
     {
       "name": "AtividadeUpdate",
       "kind": "class",
-      "file": "app\\schemas\\atividade.py",
-      "line": 29,
+      "file": "app/schemas/atividade.py",
+      "line": 60,
+      "exported": true
+    },
+    {
+      "name": "atualizar_apontamento",
+      "kind": "function",
+      "file": "app/routers/apontamentos.py",
+      "line": 186,
       "exported": true
     },
     {
       "name": "atualizar_atividade",
       "kind": "function",
-      "file": "app\\routers\\atividades.py",
-      "line": 93,
+      "file": "app/routers/atividades.py",
+      "line": 139,
       "exported": true
     },
     {
       "name": "AzureDevOpsUser",
       "kind": "class",
-      "file": "app\\auth.py",
-      "line": 25,
+      "file": "app/auth.py",
+      "line": 29,
       "exported": true
     },
     {
       "name": "AzureService",
       "kind": "class",
-      "file": "app\\services\\azure.py",
-      "line": 13,
+      "file": "app/services/azure.py",
+      "line": 99,
+      "exported": true
+    },
+    {
+      "name": "can_edit_apontamento",
+      "kind": "function",
+      "file": "app/services/timesheet_service.py",
+      "line": 97,
+      "exported": true
+    },
+    {
+      "name": "CelulaDia",
+      "kind": "class",
+      "file": "app/schemas/timesheet.py",
+      "line": 22,
       "exported": true
     },
     {
       "name": "client",
       "kind": "function",
-      "file": "tests\\conftest.py",
+      "file": "tests/conftest.py",
       "line": 56,
       "exported": true
     },
     {
       "name": "collect_metrics",
       "kind": "function",
-      "file": "scripts\\collect_metrics.py",
+      "file": "scripts/collect_metrics.py",
       "line": 42,
+      "exported": true
+    },
+    {
+      "name": "criar_apontamento",
+      "kind": "function",
+      "file": "app/routers/apontamentos.py",
+      "line": 57,
       "exported": true
     },
     {
       "name": "criar_atividade",
       "kind": "function",
-      "file": "app\\routers\\atividades.py",
-      "line": 29,
+      "file": "app/routers/atividades.py",
+      "line": 42,
       "exported": true
     },
     {
       "name": "db_session",
       "kind": "function",
-      "file": "tests\\conftest.py",
+      "file": "tests/conftest.py",
       "line": 46,
       "exported": true
     },
     {
       "name": "downgrade",
       "kind": "function",
-      "file": "alembic\\versions\\90324eefb107_initial_schema_api_aponta.py",
-      "line": 62,
-      "exported": true
-    },
-    {
-      "name": "downgrade",
-      "kind": "function",
-      "file": "alembic\\versions\\a1b2c3d4e5f6_add_criado_por_to_atividades.py",
-      "line": 41,
-      "exported": true
-    },
-    {
-      "name": "downgrade",
-      "kind": "function",
-      "file": "alembic\\versions\\ebd442876620_dummy.py",
+      "file": "alembic/versions/ebd442876620_dummy.py",
       "line": 27,
+      "exported": true
+    },
+    {
+      "name": "downgrade",
+      "kind": "function",
+      "file": "alembic/versions/d4e5f6g7h8i9_alter_apontamentos_duracao.py",
+      "line": 74,
+      "exported": true
+    },
+    {
+      "name": "downgrade",
+      "kind": "function",
+      "file": "alembic/versions/c3d4e5f6g7h8_create_apontamentos_table.py",
+      "line": 106,
+      "exported": true
+    },
+    {
+      "name": "downgrade",
+      "kind": "function",
+      "file": "alembic/versions/b2c3d4e5f6g7_add_atividade_projeto_nn_relation.py",
+      "line": 82,
+      "exported": true
+    },
+    {
+      "name": "downgrade",
+      "kind": "function",
+      "file": "alembic/versions/a1b2c3d4e5f6_add_criado_por_to_atividades.py",
+      "line": 52,
+      "exported": true
+    },
+    {
+      "name": "downgrade",
+      "kind": "function",
+      "file": "alembic/versions/90324eefb107_initial_schema_api_aponta.py",
+      "line": 90,
+      "exported": true
+    },
+    {
+      "name": "duracao_to_decimal",
+      "kind": "function",
+      "file": "app/repositories/apontamento.py",
+      "line": 31,
       "exported": true
     },
     {
       "name": "ensure_schema_exists",
       "kind": "function",
-      "file": "scripts\\collect_metrics.py",
+      "file": "scripts/collect_metrics.py",
       "line": 18,
+      "exported": true
+    },
+    {
+      "name": "ensure_seed_data",
+      "kind": "function",
+      "file": "app/services/seed.py",
+      "line": 19,
+      "exported": true
+    },
+    {
+      "name": "excluir_apontamento",
+      "kind": "function",
+      "file": "app/routers/apontamentos.py",
+      "line": 206,
       "exported": true
     },
     {
       "name": "excluir_atividade",
       "kind": "function",
-      "file": "app\\routers\\atividades.py",
-      "line": 118,
+      "file": "app/routers/atividades.py",
+      "line": 171,
+      "exported": true
+    },
+    {
+      "name": "format_duracao",
+      "kind": "function",
+      "file": "app/repositories/apontamento.py",
+      "line": 45,
       "exported": true
     },
     {
       "name": "get_current_user",
       "kind": "function",
-      "file": "app\\auth.py",
-      "line": 193,
+      "file": "app/auth.py",
+      "line": 590,
       "exported": true
     },
     {
       "name": "get_db",
       "kind": "function",
-      "file": "app\\database.py",
+      "file": "app/database.py",
       "line": 29,
       "exported": true
     },
     {
-      "name": "get_settings",
+      "name": "get_db_schema",
       "kind": "function",
-      "file": "app\\config.py",
-      "line": 114,
+      "file": "alembic/versions/90324eefb107_initial_schema_api_aponta.py",
+      "line": 25,
       "exported": true
     },
     {
-      "name": "get_supabase",
+      "name": "get_migration_schema",
       "kind": "function",
-      "file": "app\\supabase_client.py",
-      "line": 45,
-      "exported": true
-    },
-    {
-      "name": "get_supabase_admin",
-      "kind": "function",
-      "file": "app\\supabase_client.py",
-      "line": 55,
-      "exported": true
-    },
-    {
-      "name": "global_exception_handler",
-      "kind": "function",
-      "file": "app\\main.py",
-      "line": 56,
-      "exported": true
-    },
-    {
-      "name": "GUID",
-      "kind": "class",
-      "file": "app\\models\\custom_types.py",
-      "line": 10,
-      "exported": true
-    },
-    {
-      "name": "health_check",
-      "kind": "function",
-      "file": "app\\main.py",
-      "line": 96,
-      "exported": true
-    },
-    {
-      "name": "lifespan",
-      "kind": "function",
-      "file": "app\\main.py",
-      "line": 27,
-      "exported": true
-    },
-    {
-      "name": "list_projects",
-      "kind": "function",
-      "file": "app\\routers\\projetos.py",
-      "line": 23,
-      "exported": true
-    },
-    {
-      "name": "listar_atividades",
-      "kind": "function",
-      "file": "app\\routers\\atividades.py",
-      "line": 47,
-      "exported": true
-    },
-    {
-      "name": "listar_projetos",
-      "kind": "function",
-      "file": "app\\routers\\integracao.py",
-      "line": 9,
-      "exported": true
-    },
-    {
-      "name": "obter_atividade",
-      "kind": "function",
-      "file": "app\\routers\\atividades.py",
-      "line": 69,
-      "exported": true
-    },
-    {
-      "name": "Projeto",
-      "kind": "class",
-      "file": "app\\models\\projeto.py",
-      "line": 8,
-      "exported": true
-    },
-    {
-      "name": "ProjetoService",
-      "kind": "class",
-      "file": "app\\services\\projeto_service.py",
-      "line": 13,
-      "exported": true
-    },
-    {
-      "name": "run_migrations_offline",
-      "kind": "function",
-      "file": "alembic\\env.py",
+      "file": "alembic/env.py",
       "line": 37,
       "exported": true
     },
     {
-      "name": "run_migrations_online",
+      "name": "get_official_work_item_icons",
       "kind": "function",
-      "file": "alembic\\env.py",
-      "line": 51,
-      "exported": true
-    },
-    {
-      "name": "Settings",
-      "kind": "class",
-      "file": "app\\config.py",
-      "line": 10,
-      "exported": true
-    },
-    {
-      "name": "SupabaseClient",
-      "kind": "class",
-      "file": "app\\supabase_client.py",
-      "line": 11,
-      "exported": true
-    },
-    {
-      "name": "sync_projects",
-      "kind": "function",
-      "file": "app\\routers\\projetos.py",
-      "line": 11,
-      "exported": true
-    },
-    {
-      "name": "test_api_info",
-      "kind": "function",
-      "file": "tests\\test_health.py",
-      "line": 26,
-      "exported": true
-    },
-    {
-      "name": "test_db",
-      "kind": "function",
-      "file": "tests\\conftest.py",
-      "line": 34,
-      "exported": true
-    },
-    {
-      "name": "test_health_check",
-      "kind": "function",
-      "file": "tests\\test_health.py",
-      "line": 8,
-      "exported": true
-    },
-    {
-      "name": "test_root_endpoint",
-      "kind": "function",
-      "file": "tests\\test_health.py",
-      "line": 18,
-      "exported": true
-    },
-    {
-      "name": "upgrade",
-      "kind": "function",
-      "file": "alembic\\versions\\90324eefb107_initial_schema_api_aponta.py",
-      "line": 20,
-      "exported": true
-    },
-    {
-      "name": "upgrade",
-      "kind": "function",
-      "file": "alembic\\versions\\a1b2c3d4e5f6_add_criado_por_to_atividades.py",
+      "file": "app/services/azure.py",
       "line": 19,
-      "exported": true
-    },
-    {
-      "name": "upgrade",
-      "kind": "function",
-      "file": "alembic\\versions\\ebd442876620_dummy.py",
-      "line": 20,
-      "exported": true
-    },
-    {
-      "name": "validate_azure_token",
-      "kind": "function",
-      "file": "app\\auth.py",
-      "line": 44,
       "exported": true
     }
   ],
@@ -935,8 +1269,8 @@
     "mostImported": []
   },
   "stats": {
-    "totalSymbols": 49,
-    "exportedSymbols": 48,
-    "analysisTimeMs": 208
+    "totalSymbols": 119,
+    "exportedSymbols": 112,
+    "analysisTimeMs": 128
   }
 }

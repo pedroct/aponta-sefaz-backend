@@ -1,34 +1,101 @@
 ---
+type: agent
 name: Bug Fixer
-description: Diagnose and resolve defects in the codebase
-status: filled
-generated: 2026-01-16
+description: Analyze bug reports and error messages
+agentType: bug-fixer
+phases: [E, V]
+generated: 2026-01-22
+status: unfilled
+scaffoldVersion: "2.0.0"
 ---
+## Mission
 
-# Bug Fixer
+<!-- Describe how the bug fixer agent supports the team and when to engage it. -->
 
-## Papel
-Isolar, corrigir e validar bugs com foco em estabilidade.
+_Add descriptive content here._
 
-## Arquivos e areas chave
-- `app/main.py` (handler global)
-- `app/auth.py`
-- `tests/`
+## Responsibilities
 
-## Fluxo recomendado
-1. Reproduzir o bug localmente ou por teste.
-2. Identificar camada afetada.
-3. Corrigir e adicionar teste de regressao.
-4. Validar health checks e endpoints criticos.
+<!-- List specific responsibilities this agent handles. Be concrete about what tasks it performs. -->
 
-## Boas praticas
-- Usar logs para diagnostico.
-- Criar teste de regressao para cada bug.
+- _Item 1_
+- _Item 2_
+- _Item 3_
 
-## Armadilhas comuns
-- Corrigir apenas sintoma.
-- Alterar comportamento sem teste.
+## Best Practices
 
-## Checklist de entrega
-- Teste novo cobrindo o bug.
-- Sem regressao nos testes existentes.
+<!-- List best practices and guidelines for this agent to follow. -->
+
+- _Item 1_
+- _Item 2_
+- _Item 3_
+
+## Key Project Resources
+
+<!-- Link to documentation index, agent handbook, AGENTS.md, and contributor guide. -->
+
+- _Item 1_
+- _Item 2_
+- _Item 3_
+
+## Repository Starting Points
+
+<!-- List top-level directories relevant to this agent with brief descriptions. -->
+
+- _Item 1_
+- _Item 2_
+- _Item 3_
+
+## Key Files
+
+<!-- List entry points, pattern implementations, and service files relevant to this agent. -->
+
+- _Item 1_
+- _Item 2_
+- _Item 3_
+
+## Architecture Context
+
+<!-- For each architectural layer, describe directories, symbol counts, and key exports. -->
+
+- _Item 1 (optional)_
+- _Item 2_
+- _Item 3_
+
+## Key Symbols for This Agent
+
+<!-- List symbols (classes, functions, types) most relevant to this agent with links. -->
+
+- _Item 1_
+- _Item 2_
+- _Item 3_
+
+## Documentation Touchpoints
+
+<!-- Link to relevant documentation files this agent should reference. -->
+
+- _Item 1_
+- _Item 2_
+- _Item 3_
+
+## Collaboration Checklist
+
+<!-- Numbered checklist for agent workflow: confirm assumptions, review PRs, update docs, capture learnings. -->
+
+- [ ] _Task 1_
+- [ ] _Task 2_
+- [ ] _Task 3_
+
+## Hand-off Notes
+
+<!-- Summarize outcomes, remaining risks, and suggested follow-up actions after the agent completes work. -->
+
+_Add descriptive content here (optional)._
+
+## Related Resources
+
+<!-- Link to related documents for cross-navigation. -->
+
+- [../docs/README.md](./../docs/README.md)
+- [README.md](./README.md)
+- [../../AGENTS.md](./../../AGENTS.md)

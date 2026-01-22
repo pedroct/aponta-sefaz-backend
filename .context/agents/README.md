@@ -2,20 +2,37 @@
 
 This directory contains ready-to-customize playbooks for AI agents collaborating on the repository.
 
+## 🚀 Quick Start
+
+**New to this project?** Start here: [Quick Reference Guide](./quick-reference.md)
+
+This guide contains:
+- Critical rules for authentication and testing
+- Repository paths and structure
+- Common tasks and commands
+- Emergency procedures
+- Latest features status
+
 ## Available Agents
+
+### Development Agents
 - [Code Reviewer](./code-reviewer.md) — Review code changes for quality, style, and best practices
 - [Bug Fixer](./bug-fixer.md) — Analyze bug reports and error messages
 - [Feature Developer](./feature-developer.md) — Implement new features according to specifications
 - [Refactoring Specialist](./refactoring-specialist.md) — Identify code smells and improvement opportunities
 - [Test Writer](./test-writer.md) — Write comprehensive unit and integration tests
+
+### Documentation & Quality
 - [Documentation Writer](./documentation-writer.md) — Create clear, comprehensive documentation
 - [Performance Optimizer](./performance-optimizer.md) — Identify performance bottlenecks
 - [Security Auditor](./security-auditor.md) — Identify security vulnerabilities
-- [Backend Specialist](./backend-specialist.md) — Design and implement server-side architecture
-- [Frontend Specialist](./frontend-specialist.md) — Design and implement user interfaces
+
+### Architecture & Infrastructure
+- [Backend Specialist](./backend-specialist.md) — Design and implement server-side architecture (FastAPI)
+- [Frontend Specialist](./frontend-specialist.md) — Design and implement user interfaces (React + Vite)
 - [Architect Specialist](./architect-specialist.md) — Design overall system architecture and patterns
-- [Devops Specialist](./devops-specialist.md) — Design and maintain CI/CD pipelines
-- [Database Specialist](./database-specialist.md) — Design and optimize database schemas
+- [Devops Specialist](./devops-specialist.md) — Design and maintain CI/CD pipelines (GitHub Actions)
+- [Database Specialist](./database-specialist.md) — Design and optimize database schemas (PostgreSQL + Alembic)
 - [Mobile Specialist](./mobile-specialist.md) — Develop native and cross-platform mobile applications
 
 ## How To Use These Playbooks

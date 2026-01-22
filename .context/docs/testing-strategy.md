@@ -1,19 +1,50 @@
-# Estrategia de testes
+---
+type: doc
+name: testing-strategy
+description: Test frameworks, patterns, coverage requirements, and quality gates
+category: testing
+generated: 2026-01-22
+status: unfilled
+scaffoldVersion: "2.0.0"
+---
+## Testing Strategy
 
-## Ferramentas
-- Pytest + pytest-cov
+<!-- Document how quality is maintained across the codebase. -->
 
-## Escopo atual
-- Health checks em `tests/test_health.py`.
-- Fixtures em `tests/conftest.py`.
+_Add descriptive content here._
 
-## Metas
-- Cobertura de CRUD de atividades e projetos.
-- Testes de integracao Azure DevOps (quando habilitado).
+## Test Types
 
-## Como rodar
-- `pytest`
-- `pytest --cov=app --cov-report=term`
+<!-- For Unit, Integration, and E2E tests: list frameworks, file naming conventions, and required tooling. -->
 
-## Observacoes
-- Para testes com banco, use ambiente isolado e variaveis dedicadas.
+- **Unit**: Jest, files named `*.test.ts`
+- **Integration**: Describe scenarios
+- **E2E**: Note harnesses or environments
+
+## Running Tests
+
+<!-- Commands for running all tests, watch mode, and coverage. Use code blocks. -->
+
+- All tests: `npm run test`
+- Watch mode: `npm run test -- --watch`
+- Coverage: `npm run test -- --coverage`
+
+## Quality Gates
+
+<!-- Define minimum coverage expectations. Capture linting or formatting requirements before merging. -->
+
+- _Item 1_
+- _Item 2_
+- _Item 3_
+
+## Troubleshooting
+
+<!-- Document flaky suites, long-running tests, or environment quirks. -->
+
+_Add descriptive content here (optional)._
+
+## Related Resources
+
+<!-- Link to related documents for cross-navigation. -->
+
+- [development-workflow.md](./development-workflow.md)
