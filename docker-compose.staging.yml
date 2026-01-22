@@ -1,5 +1,5 @@
 # Docker Compose para Ambiente de Staging
-# Usa schema PostgreSQL separado (api_aponta_staging) no mesmo banco
+# Usa schema PostgreSQL separado (aponta_sefaz_staging) no mesmo banco
 # Conecta à rede existente do nginx-aponta
 #
 # Uso: docker compose -f docker-compose.staging.yml up -d --build

@@ -28,8 +28,9 @@ class Settings(BaseSettings):
     database_password: str = "postgres"
 
     # Usamos Field com alias para garantir compatibilidade com diferentes cases
+    # Padrão é aponta_sefaz (produção)
     database_schema: str = Field(
-        "public", validation_alias=AliasChoices("DATABASE_SCHEMA", "database_schema")
+        "aponta_sefaz", validation_alias=AliasChoices("DATABASE_SCHEMA", "database_schema")
     )
 
     # API
