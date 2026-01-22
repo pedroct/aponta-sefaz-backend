@@ -37,7 +37,7 @@ services:
     environment:
       - ENVIRONMENT=staging
       - API_DEBUG=true
-      - DATABASE_SCHEMA=api_aponta_staging
+      - DATABASE_SCHEMA=aponta_sefaz_staging
       - DATABASE_HOST=postgres-aponta
       - TZ=America/Fortaleza
     networks:
