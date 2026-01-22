@@ -20,7 +20,8 @@ Bem-vindo à base de conhecimento do Sistema Aponta. Comece pelo overview do pro
 
 | Feature | Description | Status |
 |---------|-------------|--------|
-| [Blue Cells](./features/blue-cells.md) | Destaque visual de células baseado em histórico de Work Items | ✅ Implemented |
+| [Blue Cells](./features/blue-cells.md) | Destaque visual de células baseado em histórico de Work Items | ✅ Deployed Staging |
+| [Locked Items](./features/locked-items.md) | Bloqueio de lançamento de horas em Work Items fechados | 🔄 Backend Complete |
 
 ## Quick Reference
 

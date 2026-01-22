@@ -118,12 +118,19 @@ curl -H "Authorization: Bearer {jwt_token}" \
 
 ## 📖 Latest Features
 
+### Locked Items (2026-01-22) 🆕
+- **Status**: Backend deployed to staging, frontend pending
+- **Docs**: [.context/docs/features/locked-items.md](./../docs/features/locked-items.md)
+- **Backend**: Batch API endpoint + validation in criar_apontamento()
+- **Purpose**: Block time entry on Completed/Removed Work Items
+- **Next Steps**: Frontend locked-items-logic.ts + use-locked-items.ts hook
+
 ### Blue Cells (2026-01-22)
-- **Status**: Backend deployed, frontend logic created, UI integration pending
+- **Status**: Backend deployed, frontend deployed, working in staging ✅
 - **Docs**: [.context/docs/features/blue-cells.md](./../docs/features/blue-cells.md)
 - **Backend**: 2 new endpoints in `/api/v1/timesheet/`
 - **Frontend**: 3 new files (logic, hooks, CSS)
-- **Next Steps**: Integrate into React components
+- **User Confirmed**: Screenshot shows blue cells working correctly
 
 ## 🔗 External Services
 

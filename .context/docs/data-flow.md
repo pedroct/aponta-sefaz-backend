@@ -71,6 +71,7 @@ O backend utiliza uma arquitetura em camadas com serviços especializados:
   - `get_work_item_details()` - Detalhes de um Work Item específico
   - `get_work_item_revisions()` - Histórico de revisões (Blue Cells)
   - `get_process_work_item_states()` - Mapeamento de estados (Blue Cells)
+  - `get_work_items_current_state_batch()` - Estados atuais em lote (Locked Items)
 - **Autenticação**: PAT (Personal Access Token) do backend
 
 ### TimesheetService (`app/services/timesheet_service.py`)
@@ -79,6 +80,7 @@ O backend utiliza uma arquitetura em camadas com serviços especializados:
   - `get_timesheet_week()` - Dados da semana de timesheet
   - `get_work_item_revisions()` - Wrapper para AzureService (Blue Cells)
   - `get_process_states()` - Wrapper para AzureService (Blue Cells)
+  - `get_work_items_current_state()` - Wrapper para AzureService (Locked Items)
 - **Integrações**: AzureService, Repositories
 
 ### ApontamentoService (`app/services/apontamento_service.py`)
@@ -130,7 +132,62 @@ O backend utiliza uma arquitetura em camadas com serviços especializados:
 - Frontend: React Query cache (5 min para revisions, 1h para process states)
 - Backend: Sem cache (stateless, delega ao frontend)
 
-### Example 2: Creating Apontamento (Time Entry)
+### Example 2: Locked Items Feature (Validação de Estados)
+
+**User Action**: Frontend valida se Work Items estão bloqueados ao carregar timesheet
+
+**Flow**:
+1. Frontend identifica todos Work Items visíveis (ex: IDs 123, 456, 789)
+
+2. Frontend faz uma única request batch:
+   ```
+   GET /api/v1/timesheet/work-items/current-state?work_item_ids=123,456,789&organization_name=sefaz&project_id=MyProject
+   ```
+
+3. Backend (TimesheetService) chama AzureService:
+   ```python
+   states = await azure_service.get_work_items_current_state_batch(
+       work_item_ids=[123, 456, 789],
+       organization_name="sefaz",
+       project="MyProject"
+   )
+   ```
+
+4. AzureService faz POST ao Azure Batch API:
+   ```
+   POST https://dev.azure.com/sefaz/_apis/wit/workitemsbatch?api-version=7.2
+   Authorization: Basic {base64(PAT)}
+   Body: {"ids": [123, 456, 789], "fields": ["System.Id", "System.State", ...]}
+   ```
+
+5. Azure DevOps retorna array com estado atual de cada Work Item
+
+6. Backend retorna JSON mapeado:
+   ```json
+   {
+     "work_items": {
+       "123": {"id": 123, "state": "Entregue", "type": "Task"},
+       "456": {"id": 456, "state": "Active", "type": "Bug"}
+     }
+   }
+   ```
+
+7. Frontend usa `locked-items-logic.ts` para determinar bloqueios:
+   - Verifica se estado é "Completed" ou "Removed"
+   - Aplica CSS class `.locked-cell` se bloqueado
+   - Desabilita eventos (onClick, onDoubleClick)
+   - Mostra tooltip "Este item de trabalho está fechado"
+
+**Backend Validation** (fail-safe):
+- Quando usuário tenta salvar apontamento, `ApontamentoService.criar_apontamento()` chama `_validate_work_item_state()`
+- Se Work Item está em estado bloqueado, retorna HTTP 422
+- Previne bypass do bloqueio frontend
+
+**Caching**:
+- Frontend: React Query cache (2 min - estados mudam frequentemente)
+- Backend: Sem cache (sempre valida estado atual)
+
+### Example 3: Creating Apontamento (Time Entry)
 
 **User Action**: Usuário registra 4 horas em um Work Item
 
@@ -256,4 +313,5 @@ _Add descriptive content here (optional)._
 - [architecture.md](./architecture.md) - Arquitetura em camadas do sistema
 - [security.md](./security.md) - Autenticação JWT e PAT
 - [features/blue-cells.md](./features/blue-cells.md) - Feature Blue Cells completa
+- [features/locked-items.md](./features/locked-items.md) - Feature Locked Items (bloqueio de itens fechados)
 - [Azure DevOps REST API Docs](https://learn.microsoft.com/en-us/rest/api/azure/devops/)

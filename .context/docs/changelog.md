@@ -12,9 +12,60 @@ status: active
 ## [Unreleased]
 
 ### Pending
+- Frontend para Bloqueio de Itens Fechados (locked-items-logic.ts, use-locked-items.ts)
+- Deploy para produção da feature Locked Items
 - Integração de componentes React para Blue Cells
 - Deploy para produção da feature Blue Cells
 - Testes automatizados para Blue Cells
+
+---
+
+## [2026-01-22] - Locked Items Feature (Backend)
+
+### Added - Bloqueio de Itens Fechados
+
+**Feature:** Trava de segurança para impedir lançamento de horas em Work Items Completed/Removed
+
+**Commits:**
+- `e80ef0f` - feat(timesheet): implementa bloqueio de itens fechados (Completed/Removed)
+
+**New Endpoints:**
+- `GET /api/v1/timesheet/work-items/current-state` - Consulta em lote de estados atuais
+  - Query Params: `work_item_ids` (comma-separated), `organization_name`, `project_id`
+  - Returns: `{"work_items": {id: {id, state, type, assigned_to}}}`
+
+**Files Modified:**
+- `app/services/azure.py` (+61 linhas)
+  - Método `get_work_items_current_state_batch()` - POST para Azure Batch API v7.2
+  
+- `app/services/timesheet_service.py` (+27 linhas)
+  - Método `get_work_items_current_state()` - Wrapper para Azure Service
+  
+- `app/routers/timesheet.py` (+63 linhas)
+  - Endpoint com validação de formato de IDs
+  
+- `app/services/apontamento_service.py` (+71 linhas)
+  - Método `_validate_work_item_state()` - Valida antes de persistir
+  - Integração em `criar_apontamento()` - Chama validação
+  - Mapeamento de estados: Done, Closed, Entregue, Corrigido, Cancelado, Removed
+  - Retorna HTTP 422 para itens bloqueados
+  
+- `app/schemas/timesheet.py` (+18 linhas)
+  - Schema `WorkItemCurrentState`
+  - Schema `WorkItemsCurrentStateResponse`
+
+**Azure DevOps API:**
+- Batch API: `POST https://dev.azure.com/{org}/_apis/wit/workitemsbatch?api-version=7.2`
+
+**Deployment:**
+- Environment: Staging (auto-deploy via GitHub Actions)
+- Backend Status: ✅ Completo e funcional
+- Frontend Status: ⏳ Pendente
+
+**Documentation:**
+- Created: `.context/docs/features/locked-items.md` (430+ linhas)
+
+---
 
 ## [2026-01-22] - Blue Cells Feature
 
