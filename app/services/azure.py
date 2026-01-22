@@ -99,6 +99,8 @@ async def get_work_item_icon_data_uri(org_name: str, token: str, work_item_type:
 class AzureService:
     def __init__(self, token: str):
         self.token = token
+        # Para chamadas à API do Azure DevOps, usar PAT do backend
+        self._azure_api_token = settings.azure_devops_pat or token
         if settings.azure_devops_org_url:
             self.org_url = settings.azure_devops_org_url.rstrip("/")
         else:
@@ -122,9 +124,9 @@ class AzureService:
         )
 
     async def _request(self, method: str, url: str, json: dict | None = None) -> httpx.Response:
-        """Executa request usando PAT (Basic Auth)."""
+        """Executa request usando PAT do backend (Basic Auth)."""
         async with httpx.AsyncClient(timeout=10.0) as client:
-            pat_encoded = base64.b64encode(f":{self.token}".encode()).decode()
+            pat_encoded = base64.b64encode(f":{self._azure_api_token}".encode()).decode()
             headers = {"Authorization": f"Basic {pat_encoded}"}
 
             if json is not None:
@@ -233,7 +235,7 @@ class AzureService:
         for item in items_data:
             fields_data = item.get("fields", {})
             work_item_type = fields_data.get("System.WorkItemType", "")
-            icon_tasks.append(get_work_item_icon_data_uri(org_name, self.token, work_item_type))
+            icon_tasks.append(get_work_item_icon_data_uri(org_name, self._azure_api_token, work_item_type))
         icon_urls = await asyncio.gather(*icon_tasks)
         results = []
         for idx, item in enumerate(items_data):
@@ -260,3 +262,92 @@ class AzureService:
                 }
             )
         return results
+    async def get_user_profile(self, user_id: str) -> dict:
+        """
+        Busca o perfil do usuário no Azure DevOps pelo ID.
+        
+        Args:
+            user_id: O GUID do usuário (nameid do App Token JWT)
+            
+        Returns:
+            dict com displayName, emailAddress, avatarUrl
+        """
+        org_name = self._resolve_org_name(None)
+        
+        try:
+            # 1. Tentar API de Member Entitlements (retorna nome completo real)
+            entitlements_url = f"https://vsaex.dev.azure.com/{org_name}/_apis/userentitlements/{user_id}?api-version=7.1-preview.3"
+            response = await self._request("GET", entitlements_url)
+            
+            if response.status_code == 200:
+                data = response.json()
+                user_data = data.get("user", {})
+                display_name = user_data.get("displayName")
+                email = user_data.get("mailAddress") or user_data.get("principalName")
+                
+                if display_name and not display_name.startswith("User-"):
+                    return {
+                        "displayName": display_name,
+                        "emailAddress": email,
+                        "avatarUrl": None,
+                    }
+            
+            # 2. Fallback: API de identities
+            url = f"https://vssps.dev.azure.com/{org_name}/_apis/identities?identityIds={user_id}&api-version=7.1"
+            response = await self._request("GET", url)
+            
+            if response.status_code == 200:
+                data = response.json()
+                identities = data.get("value", [])
+                
+                if identities:
+                    identity = identities[0]
+                    properties = identity.get("properties", {})
+                    
+                    # Extrair email do campo Mail ou Account
+                    email = None
+                    if "Mail" in properties:
+                        email = properties["Mail"].get("$value")
+                    elif "Account" in properties:
+                        email = properties["Account"].get("$value")
+                    
+                    # providerDisplayName pode ser login, tentar customDisplayName primeiro
+                    display_name = identity.get("customDisplayName") or identity.get("providerDisplayName")
+                    
+                    # Se parece ser um login (curto, sem espaços), tentar outra fonte
+                    if display_name and " " not in display_name and len(display_name) < 20:
+                        # Tentar buscar pelo Graph API
+                        pass
+                    else:
+                        return {
+                            "displayName": display_name or f"User-{user_id[:8]}",
+                            "emailAddress": email,
+                            "avatarUrl": None,
+                        }
+            
+            # 3. Fallback: API de graph/users com busca
+            graph_url = f"https://vssps.dev.azure.com/{org_name}/_apis/graph/users?subjectTypes=aad&api-version=7.1-preview.1"
+            response = await self._request("GET", graph_url)
+            
+            if response.status_code == 200:
+                data = response.json()
+                users = data.get("value", [])
+                
+                # Buscar pelo originId que corresponde ao user_id
+                for user in users:
+                    if user.get("originId") == user_id:
+                        return {
+                            "displayName": user.get("displayName") or f"User-{user_id[:8]}",
+                            "emailAddress": user.get("mailAddress"),
+                            "avatarUrl": None,
+                        }
+                
+        except Exception as e:
+            print(f"Erro ao buscar perfil do usuário: {e}")
+        
+        # Fallback final
+        return {
+            "displayName": f"User-{user_id[:8]}",
+            "emailAddress": None,
+            "avatarUrl": None,
+        }
