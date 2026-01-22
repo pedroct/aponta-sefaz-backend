@@ -99,14 +99,11 @@ async def validate_azure_token(
                 user_id = claims.get("nameid")
                 display_name = claims.get("name", f"Azure User {user_id[:8]}")
                 logger.info(f"App Token detectado para usuário {user_id}")
-                return (
-                    AzureDevOpsUser(
-                        id=user_id,
-                        display_name=display_name,
-                        email=claims.get("email"),
-                        token=token,
-                    ),
-                    "",
+                return AzureDevOpsUser(
+                    id=user_id,
+                    display_name=display_name,
+                    email=claims.get("email"),
+                    token=token,
                 )
         except Exception:
             pass
