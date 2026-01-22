@@ -6,12 +6,20 @@ set -e
 echo "🔄 Iniciando migração de schemas..."
 
 # Variáveis de conexão
-HOST=${DATABASE_HOST:-postgres-aponta}
-USER=${DATABASE_USER:-api-aponta-user}
-DB=${DATABASE_NAME:-gestao_projetos}
+HOST="${DATABASE_HOST:-postgres-aponta}"
+USER="${DATABASE_USER:-api-aponta-user}"
+DB="${DATABASE_NAME:-gestao_projetos}"
+
+# Validar que psql está disponível
+if ! command -v psql &> /dev/null; then
+    echo "❌ ERRO: psql não encontrado. Instale postgresql-client"
+    exit 1
+fi
+
+echo "Conectando ao banco: $DB em $HOST..."
 
 # Conectar e executar migração
-psql -h "$HOST" -U "$USER" -d "$DB" <<EOF
+PGPASSWORD="${DATABASE_PASSWORD}" psql -h "$HOST" -U "$USER" -d "$DB" -v ON_ERROR_STOP=1 <<'EOSQL'
 
 -- Migrar dados de api_aponta para aponta_sefaz (se existir)
 DO $$
@@ -67,26 +75,40 @@ END $$;
 DO $$
 DECLARE
     table_record RECORD;
+    table_count INT := 0;
 BEGIN
     FOR table_record IN 
         SELECT tablename FROM pg_tables 
-        WHERE schemaname = 'public' AND tablename NOT LIKE 'pg_%'
+        WHERE schemaname = 'public' AND tablename NOT LIKE 'pg_%' AND tablename NOT LIKE 'sql_%'
     LOOP
         EXECUTE 'DROP TABLE IF EXISTS public.' || quote_ident(table_record.tablename) || ' CASCADE';
-        RAISE NOTICE 'Tabela removida de public: %', table_record.tablename;
+        table_count := table_count + 1;
     END LOOP;
+    
+    IF table_count > 0 THEN
+        RAISE NOTICE '✅ Removidas % tabelas do schema public', table_count;
+    ELSE
+        RAISE NOTICE '✓ Schema public está limpo (nenhuma tabela de aplicação encontrada)';
+    END IF;
 END $$;
 
 -- Definir search_path padrão
-ALTER DATABASE gestao_projetos SET search_path TO aponta_sefaz, aponta_sefaz_staging;
+ALTER DATABASE gestao_projetos SET search_path TO aponta_sefaz, aponta_sefaz_staging, public;
+RAISE NOTICE '✅ Search path configurado para: aponta_sefaz, aponta_sefaz_staging, public';
 
--- Verificar resultado
-\dt aponta_sefaz.*
-\dt aponta_sefaz_staging.*
-\dt public.*
+-- Exibe resultado
+SELECT 
+    schema_name,
+    (SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = s.schema_name) as table_count
+FROM information_schema.schemata s
+WHERE schema_name NOT IN ('pg_catalog', 'information_schema')
+ORDER BY schema_name;
 
-RAISE NOTICE '✅ Migração concluída!';
+EOSQL
 
-EOF
-
-echo "✅ Migração de schemas concluída!"
+echo ""
+echo "✅ Migração de schemas concluída com sucesso!"
+echo ""
+echo "Para verificar, execute:"
+echo "  psql -h ${HOST} -U ${USER} -d ${DB} -c '\\dt aponta_sefaz.*'"
+echo "  psql -h ${HOST} -U ${USER} -d ${DB} -c '\\dt aponta_sefaz_staging.*'"
