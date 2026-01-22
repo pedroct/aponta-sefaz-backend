@@ -13,10 +13,56 @@ status: active
 
 ### Pending
 - Frontend para Bloqueio de Itens Fechados (locked-items-logic.ts, use-locked-items.ts)
+- Testes manuais do botão Toolbar em staging
 - Deploy para produção da feature Locked Items
+- Deploy para produção da feature Toolbar Button
 - Integração de componentes React para Blue Cells
 - Deploy para produção da feature Blue Cells
 - Testes automatizados para Blue Cells
+
+---
+
+## [2026-01-22] - Toolbar Button Feature
+
+### Added - Botão "Aponta Tempo" na Toolbar do Work Item
+
+**Feature:** Ação rápida para registrar horas diretamente da toolbar do Work Item
+
+**Commits:**
+- `511a1ab` - feat(toolbar): adiciona botão 'Aponta Tempo' na toolbar do Work Item
+
+**New Files:**
+- `client/aponta-tempo-toolbar.html` - HTML wrapper
+- `client/aponta-tempo-toolbar.tsx` - Entry-point com SDK integration (145 linhas)
+
+**Modified Files:**
+- `extension/vss-extension.staging.json` - Contribuição `aponta-tempo-toolbar-button`
+- `extension/vss-extension.json` - Contribuição para produção
+- `vite.config.ts` - Entry-point no build
+
+**Funcionalidades:**
+- Botão aparece na toolbar do formulário de Work Item
+- Captura automaticamente: ID, título, projeto, estado
+- Valida estados bloqueados (Entregue, Corrigido, Cancelado)
+- Abre modal ModalAdicionarTempo com campos pré-preenchidos
+- Passa `podeEditar={false}` para Work Items fechados
+- Error handling com mensagens descritivas
+
+**Azure DevOps SDK:**
+- `SDK.init()` e `SDK.register()`
+- `WorkItemFormService.getId()`
+- `WorkItemFormService.getFieldValue("System.Title", "System.TeamProject", "System.State")`
+- Validação de estados usando array hardcoded
+
+**Deployment:**
+- Environment: Staging (auto-deploy via GitHub Actions)
+- Build: ✅ Successful (`npm run build`)
+- Type Check: ✅ Passed (`npm run type-check`)
+- Manual Testing: ⏳ Pending in Azure DevOps
+
+**Documentation:**
+- Created: `.context/docs/features/toolbar-button-spec.md` (300+ linhas)
+- Updated: `.context/docs/changelog.md` (esta entrada)
 
 ---
 

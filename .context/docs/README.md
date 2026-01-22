@@ -22,6 +22,7 @@ Bem-vindo à base de conhecimento do Sistema Aponta. Comece pelo overview do pro
 |---------|-------------|--------|
 | [Blue Cells](./features/blue-cells.md) | Destaque visual de células baseado em histórico de Work Items | ✅ Deployed Staging |
 | [Locked Items](./features/locked-items.md) | Bloqueio de lançamento de horas em Work Items fechados | 🔄 Backend Complete |
+| [Toolbar Button](./features/toolbar-button-spec.md) | Botão "Aponta Tempo" na toolbar do Work Item | ✅ Deployed Staging |
 
 ## Quick Reference
 

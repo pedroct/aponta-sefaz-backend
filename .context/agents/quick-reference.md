@@ -118,6 +118,14 @@ curl -H "Authorization: Bearer {jwt_token}" \
 
 ## 📖 Latest Features
 
+### Toolbar Button (2026-01-22) 🆕✅
+- **Status**: Implementado e deployed to staging
+- **Docs**: [.context/docs/features/toolbar-button-spec.md](./../docs/features/toolbar-button-spec.md)
+- **Frontend**: aponta-tempo-toolbar.tsx + HTML wrapper
+- **Purpose**: Botão rápido na toolbar do Work Item para registrar horas
+- **Integration**: Usa ModalAdicionarTempo existente com props pré-preenchidas
+- **Commit**: `511a1ab`
+
 ### Locked Items (2026-01-22) 🆕
 - **Status**: Backend deployed to staging, frontend pending
 - **Docs**: [.context/docs/features/locked-items.md](./../docs/features/locked-items.md)
