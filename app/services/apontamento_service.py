@@ -10,10 +10,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from app.config import get_settings
-from app.repositories.apontamento import (
-    ApontamentoRepository,
-    parse_duracao,
-)
+from app.repositories.apontamento import ApontamentoRepository
 from app.schemas.apontamento import ApontamentoCreate, ApontamentoUpdate
 
 settings = get_settings()
@@ -27,6 +24,9 @@ class ApontamentoService:
         self.db = db
         self.repository = ApontamentoRepository(db)
         self.token = token
+        # Para chamadas à API do Azure DevOps, usar PAT do backend
+        # O token do usuário (App Token JWT) não tem permissão para atualizar Work Items
+        self._azure_api_token = settings.azure_devops_pat or token
         if settings.azure_devops_org_url:
             self.org_url = settings.azure_devops_org_url.rstrip("/")
         else:
@@ -46,8 +46,8 @@ class ApontamentoService:
         Returns:
             Dict com os campos do work item.
         """
-        if not self.token:
-            logger.warning("Token nao disponivel para consultar work item")
+        if not self._azure_api_token:
+            logger.warning("PAT nao disponivel para consultar work item")
             return {}
 
         url = (
@@ -60,8 +60,8 @@ class ApontamentoService:
         )
 
         async with httpx.AsyncClient(timeout=10.0) as client:
-            # Usar Basic (PAT)
-            pat_encoded = base64.b64encode(f":{self.token}".encode()).decode()
+            # Usar Basic (PAT do backend)
+            pat_encoded = base64.b64encode(f":{self._azure_api_token}".encode()).decode()
             headers = {"Authorization": f"Basic {pat_encoded}"}
 
             response = await client.get(url, headers=headers)
@@ -81,35 +81,38 @@ class ApontamentoService:
         project: str,
         work_item_id: int,
         completed_work_hours: float,
-        horas_apontamento: float,
     ) -> bool:
         """
         Atualiza os campos CompletedWork e RemainingWork de um work item no Azure DevOps.
 
-        Conforme especificacao:
+        Lógica:
         - CompletedWork = valor total de horas apontadas localmente
-        - RemainingWork = (Valor Atual na Azure - Horas do Apontamento, minimo 0)
+        - RemainingWork = OriginalEstimate - CompletedWork (mínimo 0)
 
         Args:
             organization: Nome da organizacao no Azure DevOps.
             project: ID ou nome do projeto.
             work_item_id: ID do work item.
-            completed_work_hours: Total de horas completadas (soma local).
-            horas_apontamento: Horas do apontamento atual (para calculo do RemainingWork).
+            completed_work_hours: Total de horas completadas (soma de todos os apontamentos).
 
         Returns:
             True se atualizado com sucesso, False caso contrario.
         """
-        if not self.token:
-            logger.warning("Token nao disponivel para atualizar work item")
+        if not self._azure_api_token:
+            logger.warning("PAT nao disponivel para atualizar work item")
             return False
 
-        # Primeiro, obter o RemainingWork atual do Azure
+        # Obter OriginalEstimate do Azure DevOps
         fields = await self._get_work_item_fields(organization, project, work_item_id)
-        remaining_work_atual = fields.get("Microsoft.VSTS.Scheduling.RemainingWork", 0) or 0
+        original_estimate = fields.get("Microsoft.VSTS.Scheduling.OriginalEstimate", 0) or 0
 
-        # Calcular novo RemainingWork (nao pode ser negativo)
-        novo_remaining_work = max(0, remaining_work_atual - horas_apontamento)
+        # Calcular novo RemainingWork: OriginalEstimate - CompletedWork (mínimo 0)
+        novo_remaining_work = max(0, original_estimate - completed_work_hours)
+
+        logger.info(
+            f"Work item {work_item_id}: OriginalEstimate={original_estimate}h, "
+            f"CompletedWork={completed_work_hours}h, RemainingWork={novo_remaining_work}h"
+        )
 
         url = (
             f"https://dev.azure.com/{organization}/{project}"
@@ -132,8 +135,8 @@ class ApontamentoService:
         ]
 
         async with httpx.AsyncClient(timeout=10.0) as client:
-            # Usar Basic (PAT)
-            pat_encoded = base64.b64encode(f":{self.token}".encode()).decode()
+            # Usar Basic (PAT do backend)
+            pat_encoded = base64.b64encode(f":{self._azure_api_token}".encode()).decode()
             headers = {
                 "Authorization": f"Basic {pat_encoded}",
                 "Content-Type": "application/json-patch+json",
@@ -159,7 +162,6 @@ class ApontamentoService:
         organization: str,
         project: str,
         work_item_id: int,
-        horas_delta: float = 0,
     ) -> None:
         """
         Recalcula o total de horas e atualiza o Azure DevOps.
@@ -168,7 +170,6 @@ class ApontamentoService:
             organization: Nome da organizacao.
             project: ID do projeto.
             work_item_id: ID do work item.
-            horas_delta: Horas do apontamento adicionado/removido (para calculo do RemainingWork).
         """
         # Calcular total de horas apontadas para este work item
         total_horas = self.repository.get_totals_by_work_item(
@@ -183,7 +184,6 @@ class ApontamentoService:
             project=project,
             work_item_id=work_item_id,
             completed_work_hours=total_horas,
-            horas_apontamento=horas_delta,
         )
 
     async def criar_apontamento(self, apontamento_data: ApontamentoCreate):
@@ -200,16 +200,11 @@ class ApontamentoService:
             # Criar apontamento no banco
             apontamento = self.repository.create(apontamento_data)
 
-            # Calcular horas do apontamento para o delta do RemainingWork
-            horas, minutos = parse_duracao(apontamento_data.duracao)
-            horas_apontamento = horas + (minutos / 60)
-
-            # Atualizar Azure DevOps
+            # Atualizar Azure DevOps com o total de horas
             await self._recalculate_and_update_azure(
                 organization=apontamento_data.organization_name,
                 project=apontamento_data.project_id,
                 work_item_id=apontamento_data.work_item_id,
-                horas_delta=horas_apontamento,
             )
 
             return apontamento
@@ -241,23 +236,15 @@ class ApontamentoService:
                 detail=f"Apontamento com ID {apontamento_id} nao encontrado",
             )
 
-        # Calcular delta de horas se a duracao mudou
-        horas_delta = 0
-        if apontamento_data.duracao:
-            horas_ant, min_ant = parse_duracao(apontamento_anterior.duracao)
-            horas_nova, min_nova = parse_duracao(apontamento_data.duracao)
-            horas_delta = (horas_nova + min_nova / 60) - (horas_ant + min_ant / 60)
-
         try:
             # Atualizar apontamento no banco
             apontamento = self.repository.update(apontamento_id, apontamento_data)
 
-            # Atualizar Azure DevOps (o delta pode ser positivo ou negativo)
+            # Atualizar Azure DevOps com o novo total de horas
             await self._recalculate_and_update_azure(
                 organization=apontamento_anterior.organization_name,
                 project=apontamento_anterior.project_id,
                 work_item_id=apontamento_anterior.work_item_id,
-                horas_delta=horas_delta,
             )
 
             return apontamento
@@ -290,21 +277,15 @@ class ApontamentoService:
         organization_name = apontamento.organization_name
         project_id = apontamento.project_id
 
-        # Calcular horas que serao removidas (delta negativo para o RemainingWork)
-        horas, minutos = parse_duracao(apontamento.duracao)
-        horas_removidas = -(horas + minutos / 60)  # Negativo porque estamos removendo
-
         # Excluir apontamento
         deleted = self.repository.delete(apontamento_id)
 
         if deleted:
-            # Atualizar Azure DevOps
-            # Nota: O RemainingWork aumenta quando removemos horas
+            # Atualizar Azure DevOps com o novo total de horas
             await self._recalculate_and_update_azure(
                 organization=organization_name,
                 project=project_id,
                 work_item_id=work_item_id,
-                horas_delta=horas_removidas,
             )
 
         return deleted
