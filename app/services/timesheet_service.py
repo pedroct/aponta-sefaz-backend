@@ -110,7 +110,6 @@ class TimesheetService:
         self,
         organization: str,
         project: str,
-        only_my_items: bool = False,
         user_email: str | None = None,
     ) -> list[dict[str, Any]]:
         """
@@ -119,7 +118,6 @@ class TimesheetService:
         Args:
             organization: Nome da organização.
             project: ID do projeto.
-            only_my_items: Filtrar apenas itens atribuídos ao usuário.
             user_email: Email do usuário para filtro.
 
         Returns:
@@ -138,7 +136,7 @@ class TimesheetService:
         # Query para buscar links hierárquicos
         # Modo recursivo para pegar toda a árvore
         assigned_filter = ""
-        if only_my_items and user_email:
+        if user_email:
             assigned_filter = f"AND [System.AssignedTo] = '{user_email}' "
 
         wiql = f"""
@@ -168,7 +166,7 @@ class TimesheetService:
                 logger.error(f"Erro WIQL: {response.status_code} - {response.text}")
                 # Tentar query simples se a recursiva falhar
                 return await self._get_work_items_simple(
-                    organization, project, only_my_items, user_email
+                    organization, project, user_email
                 )
 
             data = response.json()
@@ -195,7 +193,6 @@ class TimesheetService:
         self,
         organization: str,
         project: str,
-        only_my_items: bool = False,
         user_email: str | None = None,
     ) -> list[dict[str, Any]]:
         """
@@ -207,7 +204,7 @@ class TimesheetService:
         )
 
         assigned_filter = ""
-        if only_my_items and user_email:
+        if user_email:
             assigned_filter = f"AND [System.AssignedTo] = '{user_email}' "
 
         wiql = f"""
@@ -485,7 +482,6 @@ class TimesheetService:
         organization: str,
         project: str,
         week_start: date | None = None,
-        only_my_items: bool = False,
         user_email: str | None = None,
         user_id: str | None = None,
     ) -> TimesheetResponse:
@@ -496,7 +492,6 @@ class TimesheetService:
             organization: Nome da organização Azure DevOps.
             project: ID do projeto.
             week_start: Início da semana (segunda). Se None, usa semana atual.
-            only_my_items: Filtrar apenas itens do usuário.
             user_email: Email do usuário para filtro.
             user_id: ID do usuário para filtrar apontamentos.
 
@@ -509,7 +504,7 @@ class TimesheetService:
 
         # Buscar Work Items do Azure DevOps
         work_items_data = await self._get_work_items_hierarchy(
-            organization, project, only_my_items, user_email
+            organization, project, user_email
         )
 
         # Buscar apontamentos da semana

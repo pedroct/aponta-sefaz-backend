@@ -47,8 +47,8 @@ def get_service(
     - **SEMANAL Σ**: Soma total da semana por Work Item
 
     **Filtros:**
-    - `only_my_items`: Filtra apenas Work Items atribuídos ao usuário logado
-    - `current_project_only`: Filtra apenas do projeto informado
+    - `current_project_only`: Filtra apenas do projeto informado (implícito)
+    - Apenas itens atribuídos ao usuário logado são exibidos
 
     **Permissões de edição:**
     - Work Items em estados **Proposed**, **InProgress** ou **Resolved**: permitem edição/exclusão
@@ -64,10 +64,6 @@ async def get_timesheet(
         default=None,
         description="Data de início da semana (segunda-feira). Se não informado, usa a semana atual.",
     ),
-    only_my_items: bool = Query(
-        default=False,
-        description="Filtrar apenas Work Items atribuídos ao usuário logado",
-    ),
     current_user: AzureDevOpsUser = Depends(get_current_user),
     service: TimesheetService = Depends(get_service),
 ) -> TimesheetResponse:
@@ -76,7 +72,6 @@ async def get_timesheet(
         organization=organization_name,
         project=project_id,
         week_start=week_start,
-        only_my_items=only_my_items,
         user_email=current_user.email,
         user_id=current_user.id,
     )
