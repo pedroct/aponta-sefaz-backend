@@ -26,12 +26,13 @@ class AtividadeRepository:
     def _validate_projetos(self, ids_projetos: list[UUID]) -> list[UUID]:
         """
         Valida se todos os IDs de projetos existem no banco de dados.
+        Converte external_ids para ids internos quando necessário.
 
         Args:
-            ids_projetos: Lista de UUIDs dos projetos.
+            ids_projetos: Lista de UUIDs dos projetos (podem ser id ou external_id).
 
         Returns:
-            Lista de IDs de projetos válidos.
+            Lista de IDs internos (projetos.id) dos projetos válidos.
 
         Raises:
             ValueError: Se algum projeto não existir.
@@ -45,22 +46,29 @@ class AtividadeRepository:
             .all()
         )
 
-        ids_existentes = {p.id for p in projetos_existentes}
-        ids_match = set()
+        # Mapeia external_id -> id interno e id -> id
+        id_map = {}
         for projeto in projetos_existentes:
-            if projeto.id in ids_projetos:
-                ids_match.add(projeto.id)
-            if projeto.external_id in ids_projetos:
-                ids_match.add(projeto.external_id)
+            id_map[projeto.id] = projeto.id
+            if projeto.external_id:
+                id_map[projeto.external_id] = projeto.id
 
-        ids_invalidos = set(ids_projetos) - ids_match
+        # Converte os IDs enviados para IDs internos
+        ids_internos = []
+        ids_invalidos = []
+        for id_enviado in ids_projetos:
+            if id_enviado in id_map:
+                ids_internos.append(id_map[id_enviado])
+            else:
+                ids_invalidos.append(id_enviado)
 
         if ids_invalidos:
             raise ValueError(
                 f"Projetos não encontrados: {', '.join(str(id) for id in ids_invalidos)}"
             )
 
-        return list(ids_existentes)
+        # Remove duplicados mantendo ordem
+        return list(dict.fromkeys(ids_internos))
 
     def _criar_relacionamentos_projetos(
         self, atividade: Atividade, ids_projetos: list[UUID]
@@ -113,9 +121,9 @@ class AtividadeRepository:
         Raises:
             ValueError: Se algum projeto não existir.
         """
-        # Validar projetos
+        # Validar projetos e obter IDs internos
         ids_projetos = atividade_data.ids_projetos
-        self._validate_projetos(ids_projetos)
+        ids_projetos_internos = self._validate_projetos(ids_projetos)
 
         # Criar atividade sem os campos de relacionamento
         atividade_dict = atividade_data.model_dump(
@@ -125,8 +133,8 @@ class AtividadeRepository:
         self.db.add(db_atividade)
         self.db.flush()  # Gera o ID da atividade
 
-        # Criar relacionamentos com projetos
-        self._criar_relacionamentos_projetos(db_atividade, ids_projetos)
+        # Criar relacionamentos com projetos (usando IDs internos)
+        self._criar_relacionamentos_projetos(db_atividade, ids_projetos_internos)
 
         self.db.commit()
         self.db.refresh(db_atividade)
@@ -259,8 +267,8 @@ class AtividadeRepository:
 
         # Atualizar relacionamentos com projetos se fornecido
         if ids_projetos is not None:
-            self._validate_projetos(ids_projetos)
-            self._atualizar_relacionamentos_projetos(db_atividade, ids_projetos)
+            ids_projetos_internos = self._validate_projetos(ids_projetos)
+            self._atualizar_relacionamentos_projetos(db_atividade, ids_projetos_internos)
 
         # Atualizar campos simples
         for field, value in update_data.items():
