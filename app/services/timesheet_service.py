@@ -20,12 +20,16 @@ from app.repositories.apontamento import duracao_to_decimal, format_duracao
 from app.schemas.timesheet import (
     ApontamentoDia,
     CelulaDia,
+    ProcessStateMapping,
     StateCategoryResponse,
     TimesheetResponse,
     TotalDia,
+    WorkItemRevision,
+    WorkItemRevisionFields,
+    WorkItemRevisionsResponse,
     WorkItemTimesheet,
 )
-from app.services.azure import get_work_item_icon_data_uri
+from app.services.azure import AzureService, get_work_item_icon_data_uri
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
@@ -665,3 +669,73 @@ class TimesheetService:
                 can_edit=can_edit,
                 can_delete=can_edit,
             )
+
+    async def get_work_item_revisions(
+        self,
+        organization: str,
+        project: str,
+        work_item_id: int,
+    ) -> WorkItemRevisionsResponse:
+        """
+        Busca o histórico de revisões de um Work Item.
+        
+        Args:
+            organization: Nome da organização
+            project: ID do projeto
+            work_item_id: ID do Work Item
+            
+        Returns:
+            WorkItemRevisionsResponse com lista de revisões
+        """
+        azure_service = AzureService(token=self.api_token)
+        
+        revisions_data = await azure_service.get_work_item_revisions(
+            work_item_id=work_item_id,
+            organization_name=organization,
+            project=project,
+        )
+        
+        # Converter para o schema Pydantic
+        revisions = [
+            WorkItemRevision(
+                rev=rev["rev"],
+                fields=WorkItemRevisionFields(
+                    **{"System.ChangedDate": rev["fields"]["System.ChangedDate"],
+                       "System.State": rev["fields"]["System.State"],
+                       "System.AssignedTo": rev["fields"]["System.AssignedTo"]}
+                )
+            )
+            for rev in revisions_data
+        ]
+        
+        return WorkItemRevisionsResponse(
+            work_item_id=work_item_id,
+            revisions=revisions,
+        )
+
+    async def get_process_states(
+        self,
+        organization: str,
+        process_id: str,
+        work_item_type_ref_name: str,
+    ) -> ProcessStateMapping:
+        """
+        Busca o mapeamento de estados para categorias de um processo.
+        
+        Args:
+            organization: Nome da organização
+            process_id: ID do processo (GUID)
+            work_item_type_ref_name: Nome de referência do tipo de WI
+            
+        Returns:
+            ProcessStateMapping com dicionário estado -> categoria
+        """
+        azure_service = AzureService(token=self.api_token)
+        
+        state_map = await azure_service.get_process_work_item_states(
+            process_id=process_id,
+            work_item_type_ref_name=work_item_type_ref_name,
+            organization_name=organization,
+        )
+        
+        return ProcessStateMapping(state_map=state_map)

@@ -192,3 +192,38 @@ class StateCategoryResponse(BaseModel):
     state_category: str = Field(..., description="Categoria do estado")
     can_edit: bool = Field(..., description="Permite edição")
     can_delete: bool = Field(..., description="Permite exclusão")
+
+
+class WorkItemRevisionFields(BaseModel):
+    """Campos de uma revisão de Work Item."""
+
+    changed_date: str = Field(..., alias="System.ChangedDate")
+    state: str | None = Field(None, alias="System.State")
+    assigned_to: dict | None = Field(None, alias="System.AssignedTo")
+
+    class Config:
+        populate_by_name = True
+
+
+class WorkItemRevision(BaseModel):
+    """Uma revisão de um Work Item."""
+
+    rev: int = Field(..., description="Número da revisão")
+    fields: WorkItemRevisionFields
+
+
+class WorkItemRevisionsResponse(BaseModel):
+    """Resposta com o histórico de revisões de um Work Item."""
+
+    work_item_id: int = Field(..., description="ID do Work Item")
+    revisions: list[WorkItemRevision] = Field(..., description="Lista de revisões")
+
+
+class ProcessStateMapping(BaseModel):
+    """Mapeamento de estados para categorias de um processo."""
+
+    state_map: dict[str, str] = Field(
+        ..., 
+        description="Dicionário mapeando nome do estado -> categoria (ex: {'Active': 'InProgress'})"
+    )
+

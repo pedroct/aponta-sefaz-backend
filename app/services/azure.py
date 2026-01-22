@@ -351,3 +351,96 @@ class AzureService:
             "emailAddress": None,
             "avatarUrl": None,
         }
+
+    async def get_work_item_revisions(
+        self,
+        work_item_id: int,
+        organization_name: str | None,
+        project: str,
+    ) -> list[dict]:
+        """
+        Busca o histórico de revisões de um Work Item.
+        
+        Args:
+            work_item_id: ID do Work Item
+            organization_name: Nome da organização
+            project: Nome ou ID do projeto
+            
+        Returns:
+            Lista de revisões com campos System.State, System.AssignedTo, System.ChangedDate
+        """
+        org_name = self._resolve_org_name(organization_name)
+        
+        url = (
+            f"https://dev.azure.com/{org_name}/{project}"
+            f"/_apis/wit/workitems/{work_item_id}/revisions?api-version=7.2"
+        )
+        
+        response = await self._request("GET", url)
+        
+        if response.status_code != 200:
+            logger.error(f"Erro ao buscar revisões do WI {work_item_id}: {response.status_code}")
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Erro ao buscar revisões do Work Item: {response.status_code}",
+            )
+        
+        data = response.json()
+        revisions = data.get("value", [])
+        
+        # Extrair apenas os campos necessários
+        return [
+            {
+                "rev": rev.get("rev"),
+                "fields": {
+                    "System.ChangedDate": rev.get("fields", {}).get("System.ChangedDate"),
+                    "System.State": rev.get("fields", {}).get("System.State"),
+                    "System.AssignedTo": rev.get("fields", {}).get("System.AssignedTo"),
+                }
+            }
+            for rev in revisions
+        ]
+
+    async def get_process_work_item_states(
+        self,
+        process_id: str,
+        work_item_type_ref_name: str,
+        organization_name: str | None,
+    ) -> dict[str, str]:
+        """
+        Busca o mapeamento de estados para categorias de um tipo de Work Item.
+        
+        Args:
+            process_id: ID do processo (GUID)
+            work_item_type_ref_name: Nome de referência do tipo de WI (ex: "Microsoft.VSTS.WorkItemTypes.Task")
+            organization_name: Nome da organização
+            
+        Returns:
+            Dicionário mapeando nome do estado -> categoria (ex: {"Active": "InProgress"})
+        """
+        org_name = self._resolve_org_name(organization_name)
+        
+        url = (
+            f"https://dev.azure.com/{org_name}/_apis/work/processes/{process_id}"
+            f"/workItemTypes/{work_item_type_ref_name}/states?api-version=7.1"
+        )
+        
+        response = await self._request("GET", url)
+        
+        if response.status_code != 200:
+            logger.error(f"Erro ao buscar estados do processo: {response.status_code}")
+            # Retornar mapeamento padrão em caso de erro
+            return {}
+        
+        data = response.json()
+        states = data.get("value", [])
+        
+        # Mapear estado -> categoria
+        state_map = {}
+        for state in states:
+            name = state.get("name")
+            category = state.get("stateCategory")
+            if name and category:
+                state_map[name] = category
+        
+        return state_map

@@ -10,8 +10,10 @@ from sqlalchemy.orm import Session
 from app.auth import AzureDevOpsUser, get_current_user
 from app.database import get_db
 from app.schemas.timesheet import (
+    ProcessStateMapping,
     StateCategoryResponse,
     TimesheetResponse,
+    WorkItemRevisionsResponse,
 )
 from app.services.timesheet_service import TimesheetService
 
@@ -109,4 +111,81 @@ async def get_work_item_state_category(
         organization=organization_name,
         project=project_id,
         work_item_id=work_item_id,
+    )
+
+
+@router.get(
+    "/work-item/{work_item_id}/revisions",
+    response_model=WorkItemRevisionsResponse,
+    summary="Obter histórico de revisões de um Work Item",
+    description="""
+    Retorna o histórico completo de revisões de um Work Item para determinar
+    estados históricos e atribuições em datas específicas.
+    
+    **Casos de uso:**
+    - Determinar se um Work Item estava "InProgress" em uma data passada
+    - Verificar quem estava atribuído ao item em um dia específico
+    - Implementar a funcionalidade de "Células Azuis" (Blue Cells) no timesheet
+    
+    **Campos retornados por revisão:**
+    - `System.ChangedDate`: Data/hora da mudança
+    - `System.State`: Estado do Work Item naquela revisão
+    - `System.AssignedTo`: Pessoa atribuída naquela revisão
+    """,
+)
+async def get_work_item_revisions(
+    work_item_id: int,
+    organization_name: str = Query(
+        ..., description="Nome da organização no Azure DevOps"
+    ),
+    project_id: str = Query(..., description="ID do projeto no Azure DevOps"),
+    service: TimesheetService = Depends(get_service),
+) -> WorkItemRevisionsResponse:
+    """Endpoint para obter o histórico de revisões de um Work Item."""
+    return await service.get_work_item_revisions(
+        organization=organization_name,
+        project=project_id,
+        work_item_id=work_item_id,
+    )
+
+
+@router.get(
+    "/process-states",
+    response_model=ProcessStateMapping,
+    summary="Obter mapeamento de estados do processo",
+    description="""
+    Retorna o mapeamento de estados para categorias do processo atual.
+    
+    Este endpoint é usado para não "hardcodar" nomes de estados no código,
+    permitindo que a aplicação funcione com processos customizados do Azure DevOps.
+    
+    **Categorias de estado:**
+    - **Proposed**: Novo, Backlog
+    - **InProgress**: Active, Committed, Em Desenvolvimento, Em Revisão, etc.
+    - **Resolved**: Resolved
+    - **Completed**: Done, Closed, Entregue
+    - **Removed**: Removed, Cancelado
+    
+    **Cache:** O resultado é cacheado no frontend para evitar chamadas repetidas.
+    """,
+)
+async def get_process_states(
+    organization_name: str = Query(
+        ..., description="Nome da organização no Azure DevOps"
+    ),
+    project_id: str = Query(..., description="ID do projeto no Azure DevOps"),
+    process_id: str = Query(
+        ..., description="ID do processo (GUID)"
+    ),
+    work_item_type: str = Query(
+        ..., 
+        description="Nome de referência do tipo de WI (ex: 'Microsoft.VSTS.WorkItemTypes.Task')"
+    ),
+    service: TimesheetService = Depends(get_service),
+) -> ProcessStateMapping:
+    """Endpoint para obter o mapeamento de estados do processo."""
+    return await service.get_process_states(
+        organization=organization_name,
+        process_id=process_id,
+        work_item_type_ref_name=work_item_type,
     )
