@@ -100,9 +100,35 @@ docker compose build --no-cache
 print_warning "Iniciando containers..."
 docker compose up -d
 
-# 9. Aguardar inicialização
-print_warning "Aguardando inicialização dos serviços (40 segundos)..."
-sleep 40
+# 9. Health check com retry logic
+print_warning "Aguardando inicialização dos serviços (pode levar até 40 segundos)..."
+
+max_attempts=5
+attempt=1
+health_ok=false
+
+echo ""
+echo "=========================================="
+echo "   Health Check - Retry Logic"
+echo "=========================================="
+echo ""
+
+while [ $attempt -le $max_attempts ]; do
+    echo -n "  [Tentativa $attempt/$max_attempts] Testando health local... "
+    
+    if curl -sf --connect-timeout 5 --max-time 10 http://localhost/health > /dev/null 2>&1; then
+        echo "✅"
+        health_ok=true
+        break
+    else
+        echo "⏳"
+        if [ $attempt -lt $max_attempts ]; then
+            sleep 8
+        fi
+    fi
+    
+    attempt=$((attempt + 1))
+done
 
 # 10. Verificar status
 echo ""
@@ -114,19 +140,20 @@ docker compose ps
 
 echo ""
 echo "=========================================="
-echo "   Verificando Health da API"
+echo "   Resultados do Health Check"
 echo "=========================================="
 echo ""
 
-# Tentar health check local
-if curl -sf http://localhost/health > /dev/null 2>&1; then
+if [ "$health_ok" = true ]; then
     print_status "Health check local: OK"
 else
-    print_warning "Health check local: Ainda iniciando..."
+    print_warning "Health check local: Timeout após $max_attempts tentativas"
+    print_warning "A API pode estar ainda inicializando. Verifique os logs:"
+    print_warning "  docker compose logs -f api"
 fi
 
 # Tentar health check via domínio
-if curl -sf https://api-aponta.pedroct.com.br/health > /dev/null 2>&1; then
+if curl -sf --connect-timeout 5 --max-time 10 https://api-aponta.pedroct.com.br/health > /dev/null 2>&1; then
     print_status "Health check público (HTTPS): OK"
 else
     print_warning "Health check público: Ainda propagando ou CloudFlare não configurado"
@@ -145,17 +172,25 @@ print_status "API inicializada"
 echo ""
 echo "Próximos passos:"
 echo ""
-echo "1. Verificar logs:"
-echo "   docker compose logs -f"
+echo "1. Verificar logs completos (últimas 50 linhas):"
+echo "   docker compose logs --tail=50 api"
 echo ""
-echo "2. Testar endpoints:"
+echo "2. Monitorar logs em tempo real:"
+echo "   docker compose logs -f api"
+echo ""
+echo "3. Testar endpoints:"
 echo "   curl http://localhost/health"
 echo "   curl https://api-aponta.pedroct.com.br/health"
 echo ""
-echo "3. Acessar documentação:"
+echo "4. Acessar documentação:"
 echo "   https://api-aponta.pedroct.com.br/docs"
 echo ""
-echo "4. Se HTTPS não funcionar, verifique:"
+echo "5. Troubleshooting:"
+if [ "$health_ok" = false ]; then
+    echo "   ⚠️  Health check falhou - aguarde 10-15 segundos e teste novamente:"
+    echo "   curl http://localhost/health"
+fi
+echo "   Se HTTPS não funcionar, verifique:"
 echo "   - CloudFlare está em modo 'Full (strict)'?"
 echo "   - DNS propagou? (pode levar 5-10 minutos)"
 echo "   - Certificados foram copiados corretamente?"

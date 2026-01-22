@@ -100,39 +100,90 @@ deploy_env() {
         docker compose down
         docker compose up -d
         
-        echo "Aguardando inicialização..."
-        sleep 5
+        echo "Aguardando inicialização (pode levar até 40 segundos)..."
         
-        echo "Verificando saúde..."
-        if [ "${env}" = "production" ]; then
-            curl -sf http://localhost/api/v1 || exit 1
+        # Health check com retry logic
+        max_attempts=5
+        attempt=1
+        health_ok=false
+        
+        echo ""
+        echo "Testando health check com retry logic:"
+        
+        while [ $attempt -le $max_attempts ]; do
+            echo -n "  [Tentativa $attempt/$max_attempts] "
+            
+            if [ "${env}" = "production" ]; then
+                if curl -sf --connect-timeout 5 --max-time 10 http://localhost/api/v1 > /dev/null 2>&1; then
+                    echo "✅ API respondendo"
+                    health_ok=true
+                    break
+                else
+                    echo "⏳ Aguardando..."
+                fi
+            else
+                if curl -sf --connect-timeout 5 --max-time 10 -H "Host: staging-aponta.treit.com.br" http://localhost/api/v1 > /dev/null 2>&1; then
+                    echo "✅ API respondendo"
+                    health_ok=true
+                    break
+                else
+                    echo "⏳ Aguardando..."
+                fi
+            fi
+            
+            if [ $attempt -lt $max_attempts ]; then
+                sleep 8
+            fi
+            
+            attempt=$((attempt + 1))
+        done
+        
+        if [ "$health_ok" = true ]; then
+            echo ""
+            echo "${env} - Health check OK!"
         else
-            curl -sf -H "Host: staging-aponta.treit.com.br" http://localhost/api/v1 || exit 1
+            echo ""
+            echo "Aviso: Timeout no health check após $max_attempts tentativas."
+            echo "A API pode estar ainda inicializando. Verifique os logs:"
+            echo "  docker compose logs -f api"
         fi
-        
-        echo "${env} OK!"
 EOF
     
     log_success "Deploy para ${env} concluído!"
 }
 
-# Health check
+# Health check com retry logic
 health_check() {
     local env=$1
     log_info "Verificando saúde de ${env}..."
     
-    if [[ "$env" == "production" ]]; then
-        if curl -sf http://aponta.treit.com.br/api/v1 > /dev/null 2>&1; then
-            log_success "Produção está saudável!"
+    max_attempts=3
+    attempt=1
+    health_ok=false
+    
+    while [ $attempt -le $max_attempts ]; do
+        if [[ "$env" == "production" ]]; then
+            if curl -sf --connect-timeout 5 --max-time 10 http://aponta.treit.com.br/api/v1 > /dev/null 2>&1; then
+                log_success "Produção está saudável!"
+                health_ok=true
+                break
+            fi
         else
-            log_warn "Produção pode estar com problemas"
+            if curl -sf --connect-timeout 5 --max-time 10 http://staging-aponta.treit.com.br/api/v1 > /dev/null 2>&1; then
+                log_success "Staging está saudável!"
+                health_ok=true
+                break
+            fi
         fi
-    else
-        if curl -sf http://staging-aponta.treit.com.br/api/v1 > /dev/null 2>&1; then
-            log_success "Staging está saudável!"
-        else
-            log_warn "Staging pode estar com problemas"
+        
+        if [ $attempt -lt $max_attempts ]; then
+            sleep 5
         fi
+        attempt=$((attempt + 1))
+    done
+    
+    if [ "$health_ok" = false ]; then
+        log_warn "${env} pode estar com problemas (tentativas esgotadas)"
     fi
 }
 
