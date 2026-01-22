@@ -104,7 +104,9 @@ class TimesheetService:
 
     def __init__(self, db: Session, token: str | None = None):
         self.db = db
-        self.token = token
+        # Usar PAT configurado se disponível, caso contrário usar token fornecido
+        # PAT é necessário para chamar as APIs do Azure DevOps (JWT da extensão não funciona)
+        self.api_token = settings.azure_devops_pat or token or ""
 
     async def _get_work_items_hierarchy(
         self,
@@ -123,7 +125,7 @@ class TimesheetService:
         Returns:
             Lista de Work Items com hierarquia.
         """
-        if not self.token:
+        if not self.api_token:
             logger.warning("Token não disponível para buscar work items")
             return []
 
@@ -157,22 +159,28 @@ class TimesheetService:
         async with httpx.AsyncClient(timeout=30.0) as client:
             # Detectar se é um JWT (App Token) ou PAT
             # JWT tem 3 partes separadas por '.'
-            is_jwt = self.token.count(".") == 2 if self.token else False
+            # Para chamadas à API do Azure DevOps, sempre usar PAT (se disponível)
+            is_jwt = self.api_token.count(".") == 2 if self.api_token else False
             
             if is_jwt:
                 # App Token (JWT) - usar Bearer auth
-                headers = {"Authorization": f"Bearer {self.token}"}
+                # Nota: JWT da extensão Azure DevOps pode não ter permissões para WIQL
+                headers = {"Authorization": f"Bearer {self.api_token}"}
+                logger.info("Usando JWT (App Token) para autenticação")
             else:
                 # PAT - usar Basic auth
-                pat_encoded = base64.b64encode(f":{self.token}".encode()).decode()
+                pat_encoded = base64.b64encode(f":{self.api_token}".encode()).decode()
                 headers = {"Authorization": f"Basic {pat_encoded}"}
+                logger.info("Usando PAT para autenticação")
 
             response = await client.post(
                 wiql_url, headers=headers, json={"query": wiql}
             )
 
             if response.status_code != 200:
-                logger.error(f"Erro WIQL: {response.status_code} - {response.text}")
+                logger.error(f"Erro WIQL: {response.status_code} - {response.text[:500]}")
+                logger.debug(f"URL: {wiql_url}")
+                logger.debug(f"Query: {wiql}")
                 # Tentar query simples se a recursiva falhar
                 return await self._get_work_items_simple(
                     organization, project, user_email
@@ -229,14 +237,14 @@ class TimesheetService:
         async with httpx.AsyncClient(timeout=30.0) as client:
             # Detectar se é um JWT (App Token) ou PAT
             # JWT tem 3 partes separadas por '.'
-            is_jwt = self.token.count(".") == 2 if self.token else False
+            is_jwt = self.api_token.count(".") == 2 if self.api_token else False
             
             if is_jwt:
                 # App Token (JWT) - usar Bearer auth
-                headers = {"Authorization": f"Bearer {self.token}"}
+                headers = {"Authorization": f"Bearer {self.api_token}"}
             else:
                 # PAT - usar Basic auth
-                pat_encoded = base64.b64encode(f":{self.token}".encode()).decode()
+                pat_encoded = base64.b64encode(f":{self.api_token}".encode()).decode()
                 headers = {"Authorization": f"Basic {pat_encoded}"}
 
             response = await client.post(
@@ -296,14 +304,14 @@ class TimesheetService:
             async with httpx.AsyncClient(timeout=30.0) as client:
                 # Detectar se é um JWT (App Token) ou PAT
                 # JWT tem 3 partes separadas por '.'
-                is_jwt = self.token.count(".") == 2 if self.token else False
+                is_jwt = self.api_token.count(".") == 2 if self.api_token else False
                 
                 if is_jwt:
                     # App Token (JWT) - usar Bearer auth
-                    headers = {"Authorization": f"Bearer {self.token}"}
+                    headers = {"Authorization": f"Bearer {self.api_token}"}
                 else:
                     # PAT - usar Basic auth
-                    pat_encoded = base64.b64encode(f":{self.token}".encode()).decode()
+                    pat_encoded = base64.b64encode(f":{self.api_token}".encode()).decode()
                     headers = {"Authorization": f"Basic {pat_encoded}"}
 
                 response = await client.get(items_url, headers=headers)
@@ -321,7 +329,7 @@ class TimesheetService:
                         "System.WorkItemType", ""
                     )
                     icon_tasks.append(
-                        get_work_item_icon_data_uri(organization, self.token or "", work_item_type)
+                        get_work_item_icon_data_uri(organization, self.api_token or "", work_item_type)
                     )
 
                 icon_urls = await asyncio.gather(*icon_tasks)
@@ -605,7 +613,7 @@ class TimesheetService:
         Returns:
             StateCategoryResponse com permissões de edição.
         """
-        if not self.token:
+        if not self.api_token:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token não disponível",
@@ -621,14 +629,14 @@ class TimesheetService:
         async with httpx.AsyncClient(timeout=10.0) as client:
             # Detectar se é um JWT (App Token) ou PAT
             # JWT tem 3 partes separadas por '.'
-            is_jwt = self.token.count(".") == 2 if self.token else False
+            is_jwt = self.api_token.count(".") == 2 if self.api_token else False
             
             if is_jwt:
                 # App Token (JWT) - usar Bearer auth
-                headers = {"Authorization": f"Bearer {self.token}"}
+                headers = {"Authorization": f"Bearer {self.api_token}"}
             else:
                 # PAT - usar Basic auth
-                pat_encoded = base64.b64encode(f":{self.token}".encode()).decode()
+                pat_encoded = base64.b64encode(f":{self.api_token}".encode()).decode()
                 headers = {"Authorization": f"Basic {pat_encoded}"}
 
             response = await client.get(url, headers=headers)
