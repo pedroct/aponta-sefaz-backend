@@ -739,3 +739,31 @@ class TimesheetService:
         )
         
         return ProcessStateMapping(state_map=state_map)
+
+    async def get_work_items_current_state(
+        self,
+        work_item_ids: list[int],
+        organization: str,
+        project: str | None = None,
+    ) -> dict[int, dict]:
+        """
+        Busca o estado atual de múltiplos Work Items usando Batch API.
+        
+        Args:
+            work_item_ids: Lista de IDs dos Work Items
+            organization: Nome da organização
+            project: Nome do projeto (opcional)
+            
+        Returns:
+            Dicionário mapeando work_item_id -> {id, state, type, assigned_to}
+        """
+        if not work_item_ids:
+            return {}
+        
+        azure_service = AzureService(token=self.api_token)
+        
+        return await azure_service.get_work_items_current_state_batch(
+            work_item_ids=work_item_ids,
+            organization_name=organization,
+            project=project,
+        )

@@ -13,7 +13,9 @@ from app.schemas.timesheet import (
     ProcessStateMapping,
     StateCategoryResponse,
     TimesheetResponse,
+    WorkItemCurrentState,
     WorkItemRevisionsResponse,
+    WorkItemsCurrentStateResponse,
 )
 from app.services.timesheet_service import TimesheetService
 
@@ -189,3 +191,65 @@ async def get_process_states(
         process_id=process_id,
         work_item_type_ref_name=work_item_type,
     )
+
+
+@router.get(
+    "/work-items/current-state",
+    response_model=WorkItemsCurrentStateResponse,
+    summary="Obter estado atual de múltiplos Work Items (Batch)",
+    description="""
+    Retorna o estado atual de múltiplos Work Items usando a Azure DevOps Batch API.
+    
+    Este endpoint é usado para validar se Work Items estão fechados (Completed/Removed)
+    antes de permitir o lançamento de horas.
+    
+    **Uso:**
+    - Validação antes de salvar apontamento
+    - Verificação de bloqueio de células no timesheet
+    - Sincronização de estados atuais
+    
+    **Response:** Dicionário mapeando work_item_id → {id, state, type, assigned_to}
+    """,
+)
+async def get_work_items_current_state(
+    work_item_ids: str = Query(
+        ...,
+        description="IDs dos Work Items separados por vírgula (ex: '123,456,789')"
+    ),
+    organization_name: str = Query(
+        ..., description="Nome da organização no Azure DevOps"
+    ),
+    project_id: str = Query(
+        ..., 
+        description="ID do projeto no Azure DevOps (opcional para batch API)"
+    ),
+    service: TimesheetService = Depends(get_service),
+) -> WorkItemsCurrentStateResponse:
+    """Endpoint para obter o estado atual de múltiplos Work Items."""
+    # Parse IDs from comma-separated string
+    try:
+        ids = [int(id.strip()) for id in work_item_ids.split(",") if id.strip()]
+    except ValueError:
+        from fastapi import HTTPException, status
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="work_item_ids deve conter apenas números separados por vírgula"
+        )
+    
+    work_items_data = await service.get_work_items_current_state(
+        work_item_ids=ids,
+        organization=organization_name,
+        project=project_id,
+    )
+    
+    # Convert to response schema
+    work_items = {}
+    for wi_id, data in work_items_data.items():
+        work_items[wi_id] = WorkItemCurrentState(
+            id=data["id"],
+            state=data["state"],
+            type=data["type"],
+            assigned_to=data["assigned_to"],
+        )
+    
+    return WorkItemsCurrentStateResponse(work_items=work_items)

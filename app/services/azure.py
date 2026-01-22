@@ -444,3 +444,61 @@ class AzureService:
                 state_map[name] = category
         
         return state_map
+
+    async def get_work_items_current_state_batch(
+        self,
+        work_item_ids: list[int],
+        organization_name: str | None,
+        project: str | None,
+    ) -> dict[int, dict]:
+        """
+        Busca o estado atual de múltiplos Work Items em uma única chamada (Batch API).
+        
+        Args:
+            work_item_ids: Lista de IDs dos Work Items
+            organization_name: Nome da organização
+            project: Nome do projeto (opcional para batch API)
+            
+        Returns:
+            Dicionário mapeando work_item_id -> {id, state, type, assigned_to}
+        """
+        if not work_item_ids:
+            return {}
+        
+        org_name = self._resolve_org_name(organization_name)
+        
+        # Batch API: POST https://dev.azure.com/{org}/_apis/wit/workitemsbatch?api-version=7.2
+        url = f"https://dev.azure.com/{org_name}/_apis/wit/workitemsbatch?api-version=7.2"
+        
+        # Payload: enviar apenas os campos necessários
+        payload = {
+            "ids": work_item_ids,
+            "fields": ["System.Id", "System.State", "System.WorkItemType", "System.AssignedTo"]
+        }
+        
+        response = await self._request("POST", url, json=payload)
+        
+        if response.status_code != 200:
+            logger.error(f"Erro ao buscar estados em batch: {response.status_code}")
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Erro ao buscar estados dos Work Items: {response.status_code}",
+            )
+        
+        data = response.json()
+        work_items = data.get("value", [])
+        
+        # Mapear por ID
+        result = {}
+        for wi in work_items:
+            wi_id = wi.get("id")
+            fields = wi.get("fields", {})
+            
+            result[wi_id] = {
+                "id": wi_id,
+                "state": fields.get("System.State"),
+                "type": fields.get("System.WorkItemType"),
+                "assigned_to": fields.get("System.AssignedTo"),
+            }
+        
+        return result

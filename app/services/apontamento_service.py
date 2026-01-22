@@ -12,6 +12,7 @@ from fastapi import HTTPException, status
 from app.config import get_settings
 from app.repositories.apontamento import ApontamentoRepository
 from app.schemas.apontamento import ApontamentoCreate, ApontamentoUpdate
+from app.services.azure import AzureService
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
@@ -186,6 +187,82 @@ class ApontamentoService:
             completed_work_hours=total_horas,
         )
 
+    async def _validate_work_item_state(
+        self,
+        work_item_id: int,
+        organization: str,
+        project: str,
+    ) -> None:
+        """
+        Valida se o Work Item está em estado que permite lançamento de horas.
+        
+        Bloqueia lançamentos em Work Items com estado Completed ou Removed.
+        
+        Args:
+            work_item_id: ID do Work Item
+            organization: Nome da organização
+            project: ID do projeto
+            
+        Raises:
+            HTTPException 422: Se o Work Item estiver fechado (Completed/Removed)
+        """
+        if not self._azure_api_token:
+            logger.warning("PAT não disponível para validar estado do Work Item")
+            return
+        
+        try:
+            azure_service = AzureService(token=self._azure_api_token)
+            
+            # Buscar estado atual do Work Item usando Batch API
+            states_data = await azure_service.get_work_items_current_state_batch(
+                work_item_ids=[work_item_id],
+                organization_name=organization,
+                project=project,
+            )
+            
+            if work_item_id not in states_data:
+                logger.error(f"Work Item {work_item_id} não encontrado")
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Work Item {work_item_id} não encontrado",
+                )
+            
+            wi_data = states_data[work_item_id]
+            current_state = wi_data.get("state")
+            
+            if not current_state:
+                logger.warning(f"Estado do Work Item {work_item_id} não disponível")
+                return
+            
+            # Buscar categoria do estado usando Process API
+            # Nota: Para simplificar, vamos usar mapeamento padrão
+            # Em produção, deveria buscar via Process API
+            state_categories_completed = {
+                "Done", "Closed", "Entregue", "Corrigido", "Concluído", "Completo"
+            }
+            state_categories_removed = {
+                "Removed", "Cancelado", "Deleted", "Excluído"
+            }
+            
+            if current_state in state_categories_completed:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail=f"Não é possível lançar horas em Work Item fechado (estado: {current_state})",
+                )
+            
+            if current_state in state_categories_removed:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail=f"Não é possível lançar horas em Work Item cancelado (estado: {current_state})",
+                )
+                
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Erro ao validar estado do Work Item: {str(e)}")
+            # Não bloquear em caso de erro na validação
+            return
+
     async def criar_apontamento(self, apontamento_data: ApontamentoCreate):
         """
         Cria um novo apontamento e atualiza o CompletedWork/RemainingWork no Azure DevOps.
@@ -197,6 +274,13 @@ class ApontamentoService:
             Apontamento criado.
         """
         try:
+            # Validar se o Work Item está em estado que permite lançamento
+            await self._validate_work_item_state(
+                work_item_id=apontamento_data.work_item_id,
+                organization=apontamento_data.organization_name,
+                project=apontamento_data.project_id,
+            )
+            
             # Criar apontamento no banco
             apontamento = self.repository.create(apontamento_data)
 
@@ -237,6 +321,13 @@ class ApontamentoService:
             )
 
         try:
+            # Validar se o Work Item está em estado que permite lançamento
+            await self._validate_work_item_state(
+                work_item_id=apontamento_anterior.work_item_id,
+                organization=apontamento_anterior.organization_name,
+                project=apontamento_anterior.project_id,
+            )
+            
             # Atualizar apontamento no banco
             apontamento = self.repository.update(apontamento_id, apontamento_data)
 

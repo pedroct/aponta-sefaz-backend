@@ -227,3 +227,20 @@ class ProcessStateMapping(BaseModel):
         description="Dicionário mapeando nome do estado -> categoria (ex: {'Active': 'InProgress'})"
     )
 
+
+class WorkItemCurrentState(BaseModel):
+    """Estado atual de um Work Item."""
+
+    id: int = Field(..., description="ID do Work Item")
+    state: str | None = Field(None, description="Estado atual")
+    type: str | None = Field(None, description="Tipo do Work Item")
+    assigned_to: dict | None = Field(None, description="Usuário atribuído")
+
+
+class WorkItemsCurrentStateResponse(BaseModel):
+    """Resposta com o estado atual de múltiplos Work Items."""
+
+    work_items: dict[int, WorkItemCurrentState] = Field(
+        ...,
+        description="Dicionário mapeando work_item_id -> estado atual"
+    )
