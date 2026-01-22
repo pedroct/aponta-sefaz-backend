@@ -50,20 +50,20 @@ class WorkItemTimesheet(BaseModel):
     icon_url: str = Field(default="", description="URL do ícone do tipo")
     assigned_to: str | None = Field(default=None, description="Usuário atribuído")
 
-    # Campos de esforço
+    # Campos de esforço do Azure DevOps
     original_estimate: float | None = Field(
-        default=None, description="Estimativa original (horas) - Coluna E"
+        default=None, description="Estimativa original (horas) - Coluna E (Estimado)"
     )
     completed_work: float | None = Field(
-        default=None, description="Trabalho completado (horas)"
+        default=None, description="Trabalho completado (horas) - calculado pelos apontamentos"
     )
     remaining_work: float | None = Field(
-        default=None, description="Trabalho restante (horas)"
+        default=None, description="Trabalho restante (horas) - Coluna S (Saldo) - OriginalEstimate - CompletedWork"
     )
 
-    # Totais da semana
+    # Totais da semana (apontamentos locais)
     total_semana_horas: float = Field(
-        default=0.0, description="Total de horas da semana - Coluna H"
+        default=0.0, description="Total de horas apontadas na semana - Coluna H (Histórico)"
     )
     total_semana_formatado: str = Field(
         default="", description="Total da semana formatado HH:mm"
