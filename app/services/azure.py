@@ -174,16 +174,16 @@ class AzureService:
 
         safe_query = query.replace("'", "''")
         if safe_query.isdigit():
+            # Busca por ID específico - não precisa filtrar por projeto pois já está na URL
             wiql = (
                 "SELECT [System.Id] FROM WorkItems "
-                f"WHERE [System.TeamProject] = '{project_id}' "
-                f"AND [System.Id] = {safe_query}"
+                f"WHERE [System.Id] = {safe_query}"
             )
         else:
+            # Busca por título - não precisa filtrar por projeto pois já está na URL
             wiql = (
                 "SELECT [System.Id] FROM WorkItems "
-                f"WHERE [System.TeamProject] = '{project_id}' "
-                f"AND [System.Title] CONTAINS '{safe_query}' "
+                f"WHERE [System.Title] CONTAINS '{safe_query}' "
                 "ORDER BY [System.ChangedDate] DESC"
             )
 
