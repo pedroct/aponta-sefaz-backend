@@ -58,9 +58,9 @@ def upgrade() -> None:
         return
     
     # Primeiro, verifica se há registros para migrar
-    result = conn.execute(text("""
+    result = conn.execute(text(f"""
         SELECT DISTINCT project_id 
-        FROM apontamentos 
+        FROM {schema}.apontamentos 
         WHERE project_id NOT LIKE '%-%'
         AND LENGTH(project_id) < 36
     """))
@@ -79,9 +79,9 @@ def upgrade() -> None:
     
     for project_name in project_names:
         # Busca o UUID do projeto pelo nome na tabela projetos
-        uuid_result = conn.execute(text("""
+        uuid_result = conn.execute(text(f"""
             SELECT CAST(external_id AS TEXT)
-            FROM projetos 
+            FROM {schema}.projetos 
             WHERE UPPER(nome) = UPPER(:project_name)
             LIMIT 1
         """), {"project_name": project_name})
@@ -92,8 +92,8 @@ def upgrade() -> None:
             project_uuid = uuid_row[0]
             
             # Atualiza todos os apontamentos com este nome para o UUID correto
-            update_result = conn.execute(text("""
-                UPDATE apontamentos 
+            update_result = conn.execute(text(f"""
+                UPDATE {schema}.apontamentos 
                 SET project_id = :project_uuid
                 WHERE project_id = :project_name
             """), {"project_uuid": project_uuid, "project_name": project_name})
