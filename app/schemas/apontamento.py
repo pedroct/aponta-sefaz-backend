@@ -7,6 +7,7 @@ from datetime import datetime, date
 from uuid import UUID
 from pydantic import BaseModel, Field, ConfigDict, field_validator, field_serializer
 import pytz
+from app.utils.project_id_normalizer import is_valid_uuid
 
 
 class AtividadeSimples(BaseModel):
@@ -83,9 +84,9 @@ class ApontamentoCreate(ApontamentoBase):
         ...,
         min_length=1,
         max_length=255,
-        description="ID do projeto no Azure DevOps (IProjectInfo.id). "
-        "Pode ser o UUID do projeto (ex: 50a9ca09-710f-4478-8278-2d069902d2af) "
-        "ou o nome do projeto (ex: 'Aponta'). Este campo NAO e o ID do banco de dados local.",
+        description="UUID do projeto no Azure DevOps (IProjectInfo.id). "
+        "Exemplo: '50a9ca09-710f-4478-8278-2d069902d2af'. "
+        "Este campo NAO e o ID do banco de dados local.",
     )
     organization_name: str = Field(
         ...,
@@ -112,6 +113,39 @@ class ApontamentoCreate(ApontamentoBase):
         max_length=255,
         description="Email do usuario (IUserContext.name)",
     )
+
+    @field_validator("project_id")
+    @classmethod
+    def validate_project_id(cls, v: str) -> str:
+        """
+        Valida que project_id é um UUID válido.
+        
+        IMPORTANTE: Durante a transição, o backend ainda aceita nomes de projetos
+        através do helper normalize_project_id() no serviço, mas recomendamos
+        enviar sempre o UUID do projeto.
+        """
+        if not v or not v.strip():
+            raise ValueError("project_id não pode ser vazio")
+        
+        v = v.strip()
+        
+        # Valida formato UUID (recomendado)
+        if is_valid_uuid(v):
+            return v
+        
+        # Se não é UUID, permite durante a transição mas emite warning
+        # O serviço será responsável por normalizar via normalize_project_id()
+        if len(v) < 36 and not "-" in v:
+            # Provavelmente é um nome de projeto (formato antigo)
+            # Permitir, mas o serviço deve converter
+            return v
+        
+        # Formato inválido
+        raise ValueError(
+            f"project_id deve ser um UUID válido ou um nome de projeto. "
+            f"Recebido: '{v}'. "
+            f"Formato UUID esperado: '50a9ca09-710f-4478-8278-2d069902d2af'"
+        )
 
 
 class ApontamentoUpdate(BaseModel):

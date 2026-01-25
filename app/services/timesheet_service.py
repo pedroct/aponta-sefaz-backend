@@ -13,6 +13,7 @@ from uuid import UUID
 import httpx
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 
 from app.config import get_settings
 from app.models.apontamento import Apontamento
@@ -30,6 +31,7 @@ from app.schemas.timesheet import (
     WorkItemTimesheet,
 )
 from app.services.azure import AzureService, get_work_item_icon_data_uri
+from app.utils.project_id_normalizer import normalize_project_id, is_valid_uuid
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
@@ -383,13 +385,28 @@ class TimesheetService:
     ) -> dict[int, dict[date, list[Apontamento]]]:
         """
         Busca apontamentos da semana agrupados por work_item_id e data.
+        
+        Durante a transição, aceita tanto UUID quanto nome do projeto.
 
         Returns:
             Dict[work_item_id, Dict[data, List[Apontamento]]]
         """
+        # Normalizar project_id para UUID se possível
+        project_normalized = project
+        try:
+            if not is_valid_uuid(project):
+                project_normalized = normalize_project_id(project, self.db)
+                logger.info(f"Project ID normalizado: {project} -> {project_normalized}")
+        except ValueError as e:
+            logger.warning(f"Não foi possível normalizar project_id '{project}': {e}")
+        
+        # Query que aceita ambos os formatos durante a transição
         query = self.db.query(Apontamento).filter(
             Apontamento.organization_name == organization,
-            Apontamento.project_id == project,
+            or_(
+                Apontamento.project_id == project_normalized,  # UUID
+                Apontamento.project_id == project,  # Formato antigo (fallback)
+            ),
             Apontamento.data_apontamento >= week_start,
             Apontamento.data_apontamento <= week_end,
         )

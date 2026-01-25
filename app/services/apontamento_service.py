@@ -13,6 +13,7 @@ from app.config import get_settings
 from app.repositories.apontamento import ApontamentoRepository
 from app.schemas.apontamento import ApontamentoCreate, ApontamentoUpdate
 from app.services.azure import AzureService
+from app.utils.project_id_normalizer import normalize_project_id
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
@@ -274,6 +275,18 @@ class ApontamentoService:
             Apontamento criado.
         """
         try:
+            # Normalizar project_id para UUID (aceita nome durante transição)
+            try:
+                normalized_project_id = normalize_project_id(
+                    apontamento_data.project_id, self.db
+                )
+                # Atualizar o project_id normalizado
+                apontamento_data.project_id = normalized_project_id
+            except ValueError as e:
+                logger.warning(f"Falha ao normalizar project_id: {e}")
+                # Se falhar a normalização, continua com o valor original
+                # O Azure DevOps pode aceitar tanto UUID quanto nome
+            
             # Validar se o Work Item está em estado que permite lançamento
             await self._validate_work_item_state(
                 work_item_id=apontamento_data.work_item_id,
