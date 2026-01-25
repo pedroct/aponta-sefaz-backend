@@ -21,10 +21,12 @@ def is_valid_uuid(value: str) -> bool:
     Returns:
         True se for um UUID válido, False caso contrário
     """
+    if value is None:
+        return False
     try:
         UUID(value)
         return True
-    except (ValueError, AttributeError):
+    except (ValueError, AttributeError, TypeError):
         return False
 
 
