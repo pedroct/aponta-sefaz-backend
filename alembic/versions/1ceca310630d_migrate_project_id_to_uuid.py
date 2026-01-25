@@ -37,6 +37,22 @@ def upgrade() -> None:
     """
     conn = op.get_bind()
     
+    # Verifica se a tabela apontamentos existe
+    table_check = conn.execute(text("""
+        SELECT EXISTS (
+            SELECT FROM information_schema.tables 
+            WHERE table_schema = CURRENT_SCHEMA()
+            AND table_name = 'apontamentos'
+        )
+    """))
+    
+    table_exists = table_check.scalar()
+    
+    if not table_exists:
+        print("⚠️  Tabela 'apontamentos' não existe ainda. Pulando migração de dados.")
+        print("    Esta migração será executada automaticamente quando a tabela for criada.")
+        return
+    
     # Primeiro, verifica se há registros para migrar
     result = conn.execute(text("""
         SELECT DISTINCT project_id 
