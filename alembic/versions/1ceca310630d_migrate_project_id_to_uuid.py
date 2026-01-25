@@ -17,6 +17,7 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy import text
+import os
 
 
 # revision identifiers, used by Alembic.
@@ -37,19 +38,22 @@ def upgrade() -> None:
     """
     conn = op.get_bind()
     
-    # Verifica se a tabela apontamentos existe
+    # Obter o schema correto das configurações (default: public)
+    schema = os.getenv('DATABASE_SCHEMA', 'public')
+    
+    # Verifica se a tabela apontamentos existe no schema correto
     table_check = conn.execute(text("""
         SELECT EXISTS (
             SELECT FROM information_schema.tables 
-            WHERE table_schema = CURRENT_SCHEMA()
+            WHERE table_schema = :schema
             AND table_name = 'apontamentos'
         )
-    """))
+    """), {"schema": schema})
     
     table_exists = table_check.scalar()
     
     if not table_exists:
-        print("⚠️  Tabela 'apontamentos' não existe ainda. Pulando migração de dados.")
+        print(f"⚠️  Tabela '{schema}.apontamentos' não existe ainda. Pulando migração de dados.")
         print("    Esta migração será executada automaticamente quando a tabela for criada.")
         return
     
