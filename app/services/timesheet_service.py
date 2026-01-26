@@ -108,11 +108,69 @@ def can_edit_apontamento(state_category: str) -> bool:
 class TimesheetService:
     """Serviço para operações de Timesheet."""
 
-    def __init__(self, db: Session, token: str | None = None):
+    def __init__(self, db: Session, token: str | None = None, organization: str | None = None):
         self.db = db
-        # Usar PAT configurado se disponível, caso contrário usar token fornecido
-        # PAT é necessário para chamar as APIs do Azure DevOps (JWT da extensão não funciona)
-        self.api_token = settings.azure_devops_pat or token or ""
+        self._token_fallback = token
+        self._organization = organization
+        # O PAT será resolvido dinamicamente por organização
+        self._pat_cache: dict[str, str] = {}
+
+    def _get_pat_for_org(self, organization: str) -> str:
+        """
+        Retorna o PAT para uma organização específica.
+        Busca primeiro no banco de dados, depois nas variáveis de ambiente.
+        """
+        if organization in self._pat_cache:
+            return self._pat_cache[organization]
+        
+        # 1. Busca no banco de dados
+        from app.repositories.organization_pat import OrganizationPatRepository
+        repo = OrganizationPatRepository(self.db)
+        pat = repo.get_pat_for_organization(organization)
+        
+        if pat:
+            logger.debug(f"PAT encontrado no banco para {organization}")
+            self._pat_cache[organization] = pat
+            return pat
+        
+        # 2. Fallback: busca nas variáveis de ambiente
+        pat = settings.get_pat_for_org(organization)
+        if pat:
+            logger.debug(f"PAT encontrado nas variáveis de ambiente para {organization}")
+            self._pat_cache[organization] = pat
+            return pat
+        
+        # 3. Fallback final: usa token fornecido na construção
+        if self._token_fallback:
+            logger.debug(f"Usando token fallback para {organization}")
+            return self._token_fallback
+        
+        logger.warning(f"Nenhum PAT encontrado para {organization}")
+        return ""
+
+    def _get_headers_for_org(self, organization: str) -> dict[str, str]:
+        """
+        Retorna os headers de autenticação para uma organização.
+        Detecta automaticamente se é JWT ou PAT.
+        """
+        token = self._get_pat_for_org(organization)
+        if not token:
+            return {}
+        
+        is_jwt = token.count(".") == 2
+        if is_jwt:
+            return {"Authorization": f"Bearer {token}"}
+        else:
+            pat_encoded = base64.b64encode(f":{token}".encode()).decode()
+            return {"Authorization": f"Basic {pat_encoded}"}
+
+    @property
+    def api_token(self) -> str:
+        """Retorna o PAT da organização atual (para retrocompatibilidade)."""
+        if self._organization:
+            return self._get_pat_for_org(self._organization)
+        # Fallback para o PAT padrão das variáveis de ambiente
+        return settings.azure_devops_pat or self._token_fallback or ""
 
     async def _get_work_items_hierarchy(
         self,
@@ -131,8 +189,8 @@ class TimesheetService:
         Returns:
             Lista de Work Items com hierarquia.
         """
-        if not self.api_token:
-            logger.warning("Token não disponível para buscar work items")
+        if not self._get_pat_for_org(organization):
+            logger.warning(f"Token não disponível para buscar work items da organização {organization}")
             return []
 
         # WIQL para buscar hierarquia (Epic -> Feature -> Story -> Task/Bug)
@@ -163,21 +221,12 @@ class TimesheetService:
         """
 
         async with httpx.AsyncClient(timeout=30.0) as client:
-            # Detectar se é um JWT (App Token) ou PAT
-            # JWT tem 3 partes separadas por '.'
-            # Para chamadas à API do Azure DevOps, sempre usar PAT (se disponível)
-            is_jwt = self.api_token.count(".") == 2 if self.api_token else False
+            # Usar headers com o PAT correto para a organização
+            headers = self._get_headers_for_org(organization)
             
-            if is_jwt:
-                # App Token (JWT) - usar Bearer auth
-                # Nota: JWT da extensão Azure DevOps pode não ter permissões para WIQL
-                headers = {"Authorization": f"Bearer {self.api_token}"}
-                logger.info("Usando JWT (App Token) para autenticação")
-            else:
-                # PAT - usar Basic auth
-                pat_encoded = base64.b64encode(f":{self.api_token}".encode()).decode()
-                headers = {"Authorization": f"Basic {pat_encoded}"}
-                logger.info("Usando PAT para autenticação")
+            if not headers:
+                logger.warning(f"Sem credenciais para {organization}")
+                return []
 
             response = await client.post(
                 wiql_url, headers=headers, json={"query": wiql}
@@ -241,17 +290,8 @@ class TimesheetService:
         """
 
         async with httpx.AsyncClient(timeout=30.0) as client:
-            # Detectar se é um JWT (App Token) ou PAT
-            # JWT tem 3 partes separadas por '.'
-            is_jwt = self.api_token.count(".") == 2 if self.api_token else False
-            
-            if is_jwt:
-                # App Token (JWT) - usar Bearer auth
-                headers = {"Authorization": f"Bearer {self.api_token}"}
-            else:
-                # PAT - usar Basic auth
-                pat_encoded = base64.b64encode(f":{self.api_token}".encode()).decode()
-                headers = {"Authorization": f"Basic {pat_encoded}"}
+            # Usar headers com o PAT correto para a organização
+            headers = self._get_headers_for_org(organization)
 
             response = await client.post(
                 wiql_url, headers=headers, json={"query": wiql}
@@ -308,17 +348,8 @@ class TimesheetService:
             )
 
             async with httpx.AsyncClient(timeout=30.0) as client:
-                # Detectar se é um JWT (App Token) ou PAT
-                # JWT tem 3 partes separadas por '.'
-                is_jwt = self.api_token.count(".") == 2 if self.api_token else False
-                
-                if is_jwt:
-                    # App Token (JWT) - usar Bearer auth
-                    headers = {"Authorization": f"Bearer {self.api_token}"}
-                else:
-                    # PAT - usar Basic auth
-                    pat_encoded = base64.b64encode(f":{self.api_token}".encode()).decode()
-                    headers = {"Authorization": f"Basic {pat_encoded}"}
+                # Usar headers com o PAT correto para a organização
+                headers = self._get_headers_for_org(organization)
 
                 response = await client.get(items_url, headers=headers)
 
@@ -330,12 +361,13 @@ class TimesheetService:
 
                 # Buscar ícones em paralelo
                 icon_tasks = []
+                pat_for_org = self._get_pat_for_org(organization)
                 for item in items_data:
                     work_item_type = item.get("fields", {}).get(
                         "System.WorkItemType", ""
                     )
                     icon_tasks.append(
-                        get_work_item_icon_data_uri(organization, self.api_token or "", work_item_type)
+                        get_work_item_icon_data_uri(organization, pat_for_org or "", work_item_type)
                     )
 
                 icon_urls = await asyncio.gather(*icon_tasks)
@@ -634,10 +666,11 @@ class TimesheetService:
         Returns:
             StateCategoryResponse com permissões de edição.
         """
-        if not self.api_token:
+        pat = self._get_pat_for_org(organization)
+        if not pat:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token não disponível",
+                detail=f"Token não disponível para organização {organization}",
             )
 
         # Buscar estado do Work Item
@@ -648,17 +681,8 @@ class TimesheetService:
         )
 
         async with httpx.AsyncClient(timeout=10.0) as client:
-            # Detectar se é um JWT (App Token) ou PAT
-            # JWT tem 3 partes separadas por '.'
-            is_jwt = self.api_token.count(".") == 2 if self.api_token else False
-            
-            if is_jwt:
-                # App Token (JWT) - usar Bearer auth
-                headers = {"Authorization": f"Bearer {self.api_token}"}
-            else:
-                # PAT - usar Basic auth
-                pat_encoded = base64.b64encode(f":{self.api_token}".encode()).decode()
-                headers = {"Authorization": f"Basic {pat_encoded}"}
+            # Usar headers com o PAT correto para a organização
+            headers = self._get_headers_for_org(organization)
 
             response = await client.get(url, headers=headers)
 
@@ -704,7 +728,7 @@ class TimesheetService:
         Returns:
             WorkItemRevisionsResponse com lista de revisões
         """
-        azure_service = AzureService(token=self.api_token)
+        azure_service = AzureService(token=self._get_pat_for_org(organization))
         
         revisions_data = await azure_service.get_work_item_revisions(
             work_item_id=work_item_id,
@@ -747,7 +771,7 @@ class TimesheetService:
         Returns:
             ProcessStateMapping com dicionário estado -> categoria
         """
-        azure_service = AzureService(token=self.api_token)
+        azure_service = AzureService(token=self._get_pat_for_org(organization))
         
         state_map = await azure_service.get_process_work_item_states(
             process_id=process_id,
@@ -777,7 +801,7 @@ class TimesheetService:
         if not work_item_ids:
             return {}
         
-        azure_service = AzureService(token=self.api_token)
+        azure_service = AzureService(token=self._get_pat_for_org(organization))
         
         return await azure_service.get_work_items_current_state_batch(
             work_item_ids=work_item_ids,

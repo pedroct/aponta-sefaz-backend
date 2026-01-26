@@ -68,6 +68,18 @@ class Settings(BaseSettings):
     azure_extension_secret: str = Field(
         "", validation_alias=AliasChoices("AZURE_EXTENSION_SECRET", "azure_extension_secret")
     )
+    
+    # Chave para criptografia de PATs no banco de dados (Fernet key - 32 bytes base64)
+    # Gerar com: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    pat_encryption_key: str = Field(
+        "", validation_alias=AliasChoices("PAT_ENCRYPTION_KEY", "pat_encryption_key")
+    )
+    
+    # Secret key para geração de chave de criptografia (fallback)
+    secret_key: str = Field(
+        "aponta-sefaz-secret-key-change-in-production",
+        validation_alias=AliasChoices("SECRET_KEY", "secret_key")
+    )
     azure_extension_app_id: str = Field(
         "560de67c-a2e8-408a-86ae-be7ea6bd0b7a",  # App ID da extensão
         validation_alias=AliasChoices("AZURE_EXTENSION_APP_ID", "azure_extension_app_id")

@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from app.config import get_settings
-from app.routers import atividades, apontamentos, integracao, projetos, user, work_items, timesheet
+from app.routers import atividades, apontamentos, integracao, projetos, user, work_items, timesheet, organization_pats
 from app.services.seed import ensure_seed_data
 
 # Configurar logging
@@ -94,6 +94,8 @@ app.include_router(user.router, prefix="/api/v1")
 app.include_router(work_items.router, prefix="/api/v1")
 
 app.include_router(timesheet.router, prefix="/api/v1")
+
+app.include_router(organization_pats.router, prefix="/api/v1")
 
 
 @app.get(
