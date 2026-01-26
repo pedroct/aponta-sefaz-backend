@@ -23,6 +23,9 @@ class Projeto(Base):
     estado = Column(
         String, nullable=True, comment="Estado do projeto (wellFormed, deleting, etc)"
     )
+    organizacao = Column(
+        String, nullable=True, index=True, comment="Nome da organização do Azure DevOps"
+    )
     last_sync_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),

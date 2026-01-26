@@ -202,7 +202,7 @@ class AzureService:
                 "ORDER BY [System.ChangedDate] DESC"
             )
 
-        response = await self._request("POST", wiql_url, json={"query": wiql})
+        response = await self._request("POST", wiql_url, json={"query": wiql}, organization_name=org_name)
 
         if response.status_code != 200:
             error_msg = response.text
@@ -235,7 +235,7 @@ class AzureService:
             f"&fields={','.join(fields)}&api-version=7.1"
         )
 
-        items_response = await self._request("GET", items_url)
+        items_response = await self._request("GET", items_url, organization_name=org_name)
         if items_response.status_code != 200:
             error_msg = items_response.text
             raise HTTPException(

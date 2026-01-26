@@ -85,6 +85,38 @@ class Settings(BaseSettings):
         
         # Fallback: retorna o PAT padrão
         return self.azure_devops_pat
+    
+    def get_all_organizations(self) -> list[dict]:
+        """Retorna lista de todas as organizações configuradas com seus PATs."""
+        import re
+        organizations = []
+        
+        # Organização principal (da AZURE_DEVOPS_ORG_URL)
+        if self.azure_devops_org_url and self.azure_devops_pat:
+            match = re.search(r"dev\.azure\.com/([^/]+)", self.azure_devops_org_url)
+            if match:
+                main_org = match.group(1)
+                organizations.append({
+                    "name": main_org,
+                    "pat": self.azure_devops_pat,
+                    "url": self.azure_devops_org_url,
+                })
+        
+        # Organizações adicionais (de AZURE_DEVOPS_ORG_PATS)
+        if self.azure_devops_org_pats:
+            for mapping in self.azure_devops_org_pats.split(","):
+                if "=" in mapping:
+                    org, pat = mapping.strip().split("=", 1)
+                    org = org.strip()
+                    pat = pat.strip()
+                    if org and pat:
+                        organizations.append({
+                            "name": org,
+                            "pat": pat,
+                            "url": f"https://dev.azure.com/{org}",
+                        })
+        
+        return organizations
 
     # GitHub
     github_token: str = ""

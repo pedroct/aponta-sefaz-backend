@@ -18,6 +18,7 @@ class ProjetoResponse(BaseModel):
     descricao: str | None = Field(default=None, description="Descrição do projeto")
     url: str | None = Field(default=None, description="URL do projeto no Azure DevOps")
     estado: str | None = Field(default=None, description="Estado do projeto")
+    organizacao: str | None = Field(default=None, description="Nome da organização do Azure DevOps")
     last_sync_at: datetime | None = Field(
         default=None, description="Data da última sincronização"
     )
