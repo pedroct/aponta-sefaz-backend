@@ -42,6 +42,22 @@ class OrganizationPatBase(BaseModel):
             return v.lower().strip()
         return v
     
+    @field_validator("organization_url", "descricao", mode="before")
+    @classmethod
+    def empty_string_to_none(cls, v):
+        """Converte strings vazias para None."""
+        if v == "" or v is None:
+            return None
+        return v
+    
+    @field_validator("expira_em", mode="before")
+    @classmethod
+    def parse_expira_em(cls, v):
+        """Converte strings vazias para None e valida datas."""
+        if v == "" or v is None:
+            return None
+        return v
+    
     @field_validator("organization_url", mode="before")
     @classmethod
     def normalize_org_url(cls, v, info):
