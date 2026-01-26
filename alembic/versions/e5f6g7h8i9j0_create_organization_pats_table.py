@@ -19,7 +19,7 @@ from app.config import get_settings
 
 # revision identifiers, used by Alembic.
 revision: str = 'e5f6g7h8i9j0'
-down_revision: Union[str, None] = 'add_organizacao_col'
+down_revision: Union[str, None] = '1ceca310630d'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
