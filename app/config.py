@@ -57,6 +57,12 @@ class Settings(BaseSettings):
     azure_devops_org_url: str = ""
     azure_devops_pat: str = ""
     
+    # PATs para organizações adicionais (formato: org1=pat1,org2=pat2)
+    # Exemplo: AZURE_DEVOPS_ORG_PATS="sefaz-ce-diligencia=xxx,sefaz-ce-siscoex2=yyy"
+    azure_devops_org_pats: str = Field(
+        "", validation_alias=AliasChoices("AZURE_DEVOPS_ORG_PATS", "azure_devops_org_pats")
+    )
+    
     # Secret da extensão Azure DevOps (para validar App Tokens JWT)
     # Obter em: https://aka.ms/vsmarketplace-manage > Botão direito > Certificate
     azure_extension_secret: str = Field(
@@ -66,6 +72,19 @@ class Settings(BaseSettings):
         "560de67c-a2e8-408a-86ae-be7ea6bd0b7a",  # App ID da extensão
         validation_alias=AliasChoices("AZURE_EXTENSION_APP_ID", "azure_extension_app_id")
     )
+    
+    def get_pat_for_org(self, org_name: str) -> str:
+        """Retorna o PAT para uma organização específica."""
+        # Primeiro, verifica se há PAT específico na lista de org_pats
+        if self.azure_devops_org_pats:
+            for mapping in self.azure_devops_org_pats.split(","):
+                if "=" in mapping:
+                    org, pat = mapping.strip().split("=", 1)
+                    if org.strip().lower() == org_name.lower():
+                        return pat.strip()
+        
+        # Fallback: retorna o PAT padrão
+        return self.azure_devops_pat
 
     # GitHub
     github_token: str = ""

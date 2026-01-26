@@ -97,10 +97,14 @@ async def get_work_item_icon_data_uri(org_name: str, token: str, work_item_type:
 
 
 class AzureService:
-    def __init__(self, token: str):
+    def __init__(self, token: str, organization_name: str | None = None):
         self.token = token
-        # Para chamadas à API do Azure DevOps, usar PAT do backend
-        self._azure_api_token = settings.azure_devops_pat or token
+        self._organization_name = organization_name
+        # Para chamadas à API do Azure DevOps, usar PAT específico da org ou PAT padrão
+        if organization_name:
+            self._azure_api_token = settings.get_pat_for_org(organization_name) or token
+        else:
+            self._azure_api_token = settings.azure_devops_pat or token
         if settings.azure_devops_org_url:
             self.org_url = settings.azure_devops_org_url.rstrip("/")
         else:
@@ -113,6 +117,9 @@ class AzureService:
         """Resolve o nome da organização a partir do parâmetro ou da URL configurada."""
         if organization_name:
             return organization_name
+        
+        if self._organization_name:
+            return self._organization_name
 
         match = re.search(r"dev\.azure\.com/([^/]+)", self.org_url)
         if match:
@@ -122,11 +129,19 @@ class AzureService:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="organization_name é obrigatório quando AZURE_DEVOPS_ORG_URL não é compatível",
         )
+    
+    def _get_pat_for_request(self, organization_name: str | None = None) -> str:
+        """Retorna o PAT correto para a organização da requisição."""
+        org = organization_name or self._organization_name
+        if org:
+            return settings.get_pat_for_org(org) or self._azure_api_token
+        return self._azure_api_token
 
-    async def _request(self, method: str, url: str, json: dict | None = None) -> httpx.Response:
+    async def _request(self, method: str, url: str, json: dict | None = None, organization_name: str | None = None) -> httpx.Response:
         """Executa request usando PAT do backend (Basic Auth)."""
         async with httpx.AsyncClient(timeout=10.0) as client:
-            pat_encoded = base64.b64encode(f":{self._azure_api_token}".encode()).decode()
+            pat = self._get_pat_for_request(organization_name)
+            pat_encoded = base64.b64encode(f":{pat}".encode()).decode()
             headers = {"Authorization": f"Basic {pat_encoded}"}
 
             if json is not None:
