@@ -31,6 +31,7 @@ from app.schemas.timesheet import (
     WorkItemTimesheet,
 )
 from app.services.azure import AzureService, get_work_item_icon_data_uri
+from app.services.iteration_service import IterationService
 from app.utils.project_id_normalizer import normalize_project_id, is_valid_uuid
 
 settings = get_settings()
@@ -572,6 +573,7 @@ class TimesheetService:
         week_start: date | None = None,
         user_email: str | None = None,
         user_id: str | None = None,
+        iteration_id: str | None = None,
     ) -> TimesheetResponse:
         """
         Retorna o timesheet completo para uma semana.
@@ -582,6 +584,7 @@ class TimesheetService:
             week_start: Início da semana (segunda). Se None, usa semana atual.
             user_email: Email do usuário para filtro.
             user_id: ID do usuário para filtrar apontamentos.
+            iteration_id: ID da iteration (sprint) para filtrar work items.
 
         Returns:
             TimesheetResponse com a hierarquia e totais.
@@ -590,10 +593,33 @@ class TimesheetService:
         week_start_date, week_end_date, week_dates = get_week_dates(week_start)
         today = date.today()
 
+        # Se iteration_id fornecido, buscar IDs dos work items da iteration
+        iteration_work_item_ids: set[int] | None = None
+        if iteration_id:
+            iteration_service = IterationService(self.db, token=self._token_fallback)
+            iteration_work_items = await iteration_service.get_iteration_work_items(
+                organization=organization,
+                project=project,
+                iteration_id=iteration_id,
+            )
+            if iteration_work_items.work_item_ids:
+                iteration_work_item_ids = set(iteration_work_items.work_item_ids)
+                logger.info(
+                    f"Filtrando por iteration {iteration_id}: {len(iteration_work_item_ids)} work items"
+                )
+
         # Buscar Work Items do Azure DevOps
         work_items_data = await self._get_work_items_hierarchy(
             organization, project, user_email
         )
+
+        # Filtrar work items pela iteration, se especificada
+        if iteration_work_item_ids is not None:
+            work_items_data = [
+                wi for wi in work_items_data
+                if wi["id"] in iteration_work_item_ids
+            ]
+            logger.info(f"Work items após filtro de iteration: {len(work_items_data)}")
 
         # Buscar apontamentos da semana
         apontamentos_map = self._get_apontamentos_semana(

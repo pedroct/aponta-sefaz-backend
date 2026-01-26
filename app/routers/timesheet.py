@@ -68,6 +68,10 @@ async def get_timesheet(
         default=None,
         description="Data de início da semana (segunda-feira). Se não informado, usa a semana atual.",
     ),
+    iteration_id: str | None = Query(
+        default=None,
+        description="ID da Iteration (Sprint) para filtrar work items. Se não informado, exibe todos.",
+    ),
     current_user: AzureDevOpsUser = Depends(get_current_user),
     service: TimesheetService = Depends(get_service),
 ) -> TimesheetResponse:
@@ -78,6 +82,7 @@ async def get_timesheet(
         week_start=week_start,
         user_email=current_user.email,
         user_id=current_user.id,
+        iteration_id=iteration_id,
     )
 
 
