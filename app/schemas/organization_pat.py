@@ -42,9 +42,9 @@ class OrganizationPatBase(BaseModel):
             return v.lower().strip()
         return v
     
-    @field_validator("organization_url", "descricao", mode="before")
+    @field_validator("descricao", mode="before")
     @classmethod
-    def empty_string_to_none(cls, v):
+    def empty_string_to_none_descricao(cls, v):
         """Converte strings vazias para None."""
         if v == "" or v is None:
             return None
@@ -61,8 +61,13 @@ class OrganizationPatBase(BaseModel):
     @field_validator("organization_url", mode="before")
     @classmethod
     def normalize_org_url(cls, v, info):
-        """Gera URL automaticamente se não fornecida."""
-        if not v and "organization_name" in info.data:
+        """Converte string vazia para None e gera URL automaticamente se não fornecida."""
+        # Primeiro converte string vazia para None
+        if v == "" or v is None:
+            v = None
+        
+        # Se ainda None e temos organization_name, gera a URL
+        if not v and info.data and "organization_name" in info.data:
             org_name = info.data["organization_name"]
             if org_name:
                 return f"https://dev.azure.com/{org_name}"
