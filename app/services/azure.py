@@ -43,8 +43,15 @@ _DEFAULT_COLOR = "#888888"
 
 
 async def get_work_item_icon_data_uri(org_name: str, token: str, work_item_type: str) -> str:
-    """Obtém o SVG oficial do tipo de work item e retorna como Data URI (evita CORS)."""
+    """Obtém o SVG oficial do tipo de work item e retorna como Data URI (evita CORS).
+    
+    Esta função é tolerante a falhas e sempre retorna um ícone válido,
+    mesmo em caso de timeout ou erro de rede.
+    """
     import urllib.parse
+    import logging
+    
+    logger = logging.getLogger(__name__)
     
     # Mapeamento dos tipos para os IDs oficiais de ícone do Azure DevOps
     # Referência: GET https://dev.azure.com/{organization}/_apis/wit/workitemicons/{icon}?color={color}&v={v}
@@ -63,37 +70,53 @@ async def get_work_item_icon_data_uri(org_name: str, token: str, work_item_type:
     
     # Se não encontrar, usa o ícone padrão do Azure DevOps (clipboard cinza)
     icon_id, color = type_to_icon_id.get(work_item_type, ("icon_clipboard", "888888"))
-    icon_url = f"https://dev.azure.com/{org_name}/_apis/wit/workitemicons/{icon_id}?color={color}&v=2&api-version=7.2-preview.1"
     
-    # Header de autenticação (necessário para a API de ícones)
-    pat_encoded = base64.b64encode(f":{token}".encode()).decode()
-    headers = {"Authorization": f"Basic {pat_encoded}"}
+    # Função helper para gerar fallback SVG
+    def _get_fallback_svg() -> str:
+        svg = _DEFAULT_ICON_SVG.replace("{color}", f"#{color}")
+        encoded = urllib.parse.quote(svg, safe="")
+        return f"data:image/svg+xml,{encoded}"
     
-    async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
-        resp = await client.get(icon_url, headers=headers)
-        if resp.status_code == 200:
-            content_type = resp.headers.get("content-type", "")
-            if content_type.startswith("image/svg"):
+    try:
+        icon_url = f"https://dev.azure.com/{org_name}/_apis/wit/workitemicons/{icon_id}?color={color}&v=2&api-version=7.2-preview.1"
+        
+        # Header de autenticação (necessário para a API de ícones)
+        pat_encoded = base64.b64encode(f":{token}".encode()).decode()
+        headers = {"Authorization": f"Basic {pat_encoded}"}
+        
+        # Timeout reduzido para evitar bloqueio prolongado (5s por ícone)
+        async with httpx.AsyncClient(timeout=5.0, follow_redirects=True) as client:
+            resp = await client.get(icon_url, headers=headers)
+            if resp.status_code == 200:
+                content_type = resp.headers.get("content-type", "")
+                if content_type.startswith("image/svg"):
+                    svg = resp.text
+                    encoded = urllib.parse.quote(svg, safe="")
+                    return f"data:image/svg+xml,{encoded}"
+                elif content_type.startswith("image/png"):
+                    b64 = base64.b64encode(resp.content).decode()
+                    return f"data:image/png;base64,{b64}"
+        
+        # Fallback: retorna SVG oficial do clipboard cinza
+        fallback_url = f"https://dev.azure.com/{org_name}/_apis/wit/workitemicons/icon_clipboard?color=888888&v=2&api-version=7.2-preview.1"
+        async with httpx.AsyncClient(timeout=5.0, follow_redirects=True) as client:
+            resp = await client.get(fallback_url, headers=headers)
+            if resp.status_code == 200 and resp.headers.get("content-type", "").startswith("image/svg"):
                 svg = resp.text
                 encoded = urllib.parse.quote(svg, safe="")
                 return f"data:image/svg+xml,{encoded}"
-            elif content_type.startswith("image/png"):
-                b64 = base64.b64encode(resp.content).decode()
-                return f"data:image/png;base64,{b64}"
-    
-    # Fallback: retorna SVG oficial do clipboard cinza
-    fallback_url = f"https://dev.azure.com/{org_name}/_apis/wit/workitemicons/icon_clipboard?color=888888&v=2&api-version=7.2-preview.1"
-    async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
-        resp = await client.get(fallback_url, headers=headers)
-        if resp.status_code == 200 and resp.headers.get("content-type", "").startswith("image/svg"):
-            svg = resp.text
-            encoded = urllib.parse.quote(svg, safe="")
-            return f"data:image/svg+xml,{encoded}"
-    
-    # Fallback final: SVG genérico inline
-    svg = _DEFAULT_ICON_SVG.replace("{color}", f"#{color}")
-    encoded = urllib.parse.quote(svg, safe="")
-    return f"data:image/svg+xml,{encoded}"
+        
+        # Fallback final: SVG genérico inline
+        return _get_fallback_svg()
+        
+    except (httpx.TimeoutException, httpx.ConnectError, httpx.HTTPStatusError) as e:
+        # Log do erro mas retorna fallback sem propagar exceção
+        logger.warning(f"Falha ao buscar ícone para {work_item_type} (org: {org_name}): {type(e).__name__}: {e}")
+        return _get_fallback_svg()
+    except Exception as e:
+        # Captura qualquer outra exceção para garantir resiliência
+        logger.error(f"Erro inesperado ao buscar ícone para {work_item_type}: {type(e).__name__}: {e}")
+        return _get_fallback_svg()
 
 
 class AzureService:
