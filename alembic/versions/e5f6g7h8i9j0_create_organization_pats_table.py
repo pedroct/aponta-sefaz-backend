@@ -1,7 +1,7 @@
 """Create organization_pats table
 
 Revision ID: e5f6g7h8i9j0
-Revises: d4e5f6g7h8i9
+Revises: add_organizacao_col
 Create Date: 2026-01-26
 
 """
@@ -19,7 +19,7 @@ from app.config import get_settings
 
 # revision identifiers, used by Alembic.
 revision: str = 'e5f6g7h8i9j0'
-down_revision: Union[str, None] = 'd4e5f6g7h8i9'
+down_revision: Union[str, None] = 'add_organizacao_col'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
