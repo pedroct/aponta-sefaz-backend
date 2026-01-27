@@ -36,6 +36,7 @@ jobs:
     name: Deploy na VPS via SSH
     needs: build-and-push
     runs-on: ubuntu-latest
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
     steps:
       - name: Executar Comandos de Deploy
         uses: appleboy/ssh-action@master
