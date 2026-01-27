@@ -31,7 +31,8 @@ target_metadata = Base.metadata
 
 # Obter URL do banco
 settings = get_settings()
-config.set_main_option("sqlalchemy.url", settings.database_url)
+#config.set_main_option("sqlalchemy.url", settings.database_url)
+config.set_main_option("sqlalchemy.url", settings.database_url.replace('%', '%%'))
 
 # Função helper para migrações acessarem o schema
 def get_migration_schema():
