@@ -1,0 +1,60 @@
+name: Deploy Backend Aponta
+
+on:
+  push:
+    branches: [ develop, main ]
+
+jobs:
+  build-and-push:
+    name: Build e Push para GHCR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout Código
+        uses: actions/checkout@v4
+
+      - name: Login no GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build e Push da Imagem
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          # Tags inteligentes baseadas no branch
+          tags: |
+            ghcr.io/${{ github.repository }}/api-aponta:${{ github.ref == 'refs/heads/main' && 'latest' || 'staging' }}
+
+  deploy:
+    name: Deploy na VPS via SSH
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Executar Comandos de Deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          script: |
+            # 1. Definir caminho pelo branch
+            if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+              APP_DIR="/home/ubuntu/aponta-sefaz/production/backend"
+            else
+              APP_DIR="/home/ubuntu/aponta-sefaz/staging/backend"
+            fi
+            
+            # 2. Entrar na pasta e atualizar
+            cd $APP_DIR
+            docker compose pull
+            docker compose up -d --remove-orphans
+            
+            # 3. Limpeza de imagens antigas (opcional para economizar espaço)
+            docker image prune -f
