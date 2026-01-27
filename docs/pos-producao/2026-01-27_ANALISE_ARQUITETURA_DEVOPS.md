@@ -230,13 +230,13 @@ CORS_ORIGINS=https://...
 
 ## ⚠️ Problemas Identificados
 
-### 🔴 Críticos
+###  Críticos
 
 #### 1. Código "Fantasma" em Produção
 - **Descrição:** VPS Production tem código que não existe no Git
 - **Causa:** Deploy anterior via rsync ao invés de GitHub Actions
 - **Impacto:** Impossível rastrear versão em produção
-- **Status:** 🔴 Não resolvido
+- **Status:**  Não resolvido
 
 #### 2. Ausência de .git em Production
 - **Descrição:** `/opt/aponta-production` não tem diretório `.git`
