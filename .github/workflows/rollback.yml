@@ -1,0 +1,133 @@
+# Workflow manual para rollback de deploy
+# Documentacao: docs/DEPLOY.md
+name: Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Ambiente para rollback'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      image_tag:
+        description: 'Tag da imagem para rollback (commit SHA de 40 caracteres)'
+        required: true
+        type: string
+      reason:
+        description: 'Motivo do rollback'
+        required: false
+        type: string
+
+jobs:
+  rollback:
+    name: Rollback ${{ github.event.inputs.environment }}
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+
+    steps:
+      - name: Validar input
+        run: |
+          if [[ ! "${{ github.event.inputs.image_tag }}" =~ ^[a-f0-9]{40}$ ]]; then
+            echo "::error::Tag invalida. Use o commit SHA de 40 caracteres."
+            echo "Para listar tags disponiveis, execute no VPS:"
+            echo "docker images staging-api --format '{{.Tag}}' | grep -E '^[a-f0-9]{40}$'"
+            exit 1
+          fi
+
+      - name: Configurar SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Verificar se imagem existe
+        run: |
+          ENV="${{ github.event.inputs.environment }}"
+          TAG="${{ github.event.inputs.image_tag }}"
+
+          if [ "$ENV" = "staging" ]; then
+            IMAGE="staging-api"
+          else
+            IMAGE="production-api"
+          fi
+
+          EXISTS=$(ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "docker images ${IMAGE}:${TAG} --format '{{.Repository}}:{{.Tag}}'" || true)
+
+          if [ -z "$EXISTS" ]; then
+            echo "::error::Imagem ${IMAGE}:${TAG} nao encontrada no VPS."
+            echo "Tags disponiveis:"
+            ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "docker images ${IMAGE} --format '{{.Tag}}\t{{.CreatedAt}}' | head -10"
+            exit 1
+          fi
+
+          echo "Imagem encontrada: ${EXISTS}"
+
+      - name: Executar rollback
+        run: |
+          ENV="${{ github.event.inputs.environment }}"
+          TAG="${{ github.event.inputs.image_tag }}"
+
+          if [ "$ENV" = "staging" ]; then
+            CONTAINER="api-aponta-staging"
+            IMAGE="staging-api"
+            COMPOSE_DIR="/home/ubuntu/aponta-sefaz/staging"
+          else
+            CONTAINER="api-aponta-prod"
+            IMAGE="production-api"
+            COMPOSE_DIR="/home/ubuntu/aponta-sefaz/production"
+          fi
+
+          echo "Executando rollback para ${IMAGE}:${TAG}..."
+
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
+            cd ${COMPOSE_DIR} && \
+            docker stop ${CONTAINER} || true && \
+            docker rm ${CONTAINER} || true && \
+            docker run -d \
+              --name ${CONTAINER} \
+              --network aponta-shared-network \
+              --env-file .env \
+              --restart unless-stopped \
+              ${IMAGE}:${TAG}
+          "
+
+      - name: Verificar rollback
+        run: |
+          ENV="${{ github.event.inputs.environment }}"
+
+          if [ "$ENV" = "staging" ]; then
+            CONTAINER="api-aponta-staging"
+            URL="https://staging-aponta.treit.com.br"
+          else
+            CONTAINER="api-aponta-prod"
+            URL="https://aponta.treit.com.br"
+          fi
+
+          echo "Aguardando inicializacao (20s)..."
+          sleep 20
+
+          if ! ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "docker exec ${CONTAINER} curl -sf http://localhost:8000/health"; then
+            echo "::error::Health check falhou apos rollback!"
+            ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "docker logs ${CONTAINER} --tail 50"
+            exit 1
+          fi
+
+          echo "Rollback concluido com sucesso!"
+          echo "URL: ${URL}"
+
+      - name: Registrar rollback
+        if: always()
+        run: |
+          echo "========================================"
+          echo "ROLLBACK EXECUTADO"
+          echo "========================================"
+          echo "Ambiente: ${{ github.event.inputs.environment }}"
+          echo "Tag: ${{ github.event.inputs.image_tag }}"
+          echo "Motivo: ${{ github.event.inputs.reason || 'Nao informado' }}"
+          echo "Executado por: ${{ github.actor }}"
+          echo "Data: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "========================================"

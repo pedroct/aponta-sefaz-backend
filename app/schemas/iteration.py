@@ -26,8 +26,10 @@ class IterationAttributes(BaseModel):
         description="Período da iteration: past, current, future"
     )
 
-    class Config:
-        populate_by_name = True
+    model_config = {
+        "populate_by_name": True,
+        "by_alias": False,  # Serializar usando nomes de campo (snake_case)
+    }
 
 
 class IterationResponse(BaseModel):
@@ -45,8 +47,10 @@ class IterationResponse(BaseModel):
     )
     url: str | None = Field(default=None, description="URL da API da iteration")
 
-    class Config:
-        populate_by_name = True
+    model_config = {
+        "populate_by_name": True,
+        "by_alias": False,
+    }
 
 
 class IterationsListResponse(BaseModel):

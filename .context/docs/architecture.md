@@ -3,7 +3,7 @@ type: doc
 name: architecture
 description: System architecture, layers, patterns, and design decisions
 category: architecture
-generated: 2026-01-22
+generated: 2026-01-26
 status: filled
 scaffoldVersion: "2.0.0"
 ---
@@ -124,8 +124,46 @@ O Sistema Aponta segue uma arquitetura de API REST com separação clara de resp
 | `atividade_projeto` | Relação N:N entre atividades e projetos |
 | `alembic_version` | Controle de migrações |
 
+## CI/CD Pipeline
+
+O deploy e 100% automatizado via **GitHub Actions**. NAO faca deploy manual.
+
+```
+GitHub Repository
+    │
+    ├─── develop branch ──> Deploy Staging (automatico)
+    │
+    └─── main branch ──> Deploy Production (automatico)
+```
+
+### Workflows
+
+| Workflow | Trigger | Ambiente |
+|----------|---------|----------|
+| `deploy-staging.yml` | Push em `develop` | Staging |
+| `deploy-production.yml` | Push em `main` | Producao |
+| `rollback.yml` | Manual | Ambos |
+
+### Secrets Management
+
+Secrets sao gerenciados em **GitHub > Settings > Secrets and variables > Actions**.
+
+| Secret | Scope | Descricao |
+|--------|-------|-----------|
+| `VPS_HOST` | Repository | IP do servidor |
+| `VPS_USER` | Repository | Usuario SSH |
+| `VPS_SSH_PRIVATE_KEY` | Repository | Chave SSH privada |
+| `DATABASE_PASSWORD` | Environment | Senha PostgreSQL |
+| `AZURE_DEVOPS_PAT` | Environment | PAT Azure DevOps |
+| `AZURE_EXTENSION_SECRET` | Environment | Secret da extensao |
+
+Os arquivos `.env` sao gerados automaticamente durante o deploy a partir dos GitHub Secrets.
+
+> **Documentacao completa de deploy:** [docs/DEPLOY.md](../../docs/DEPLOY.md)
+
 ## Related Resources
 
 - [project-overview.md](./project-overview.md)
 - [security.md](./security.md)
 - [data-flow.md](./data-flow.md)
+- [docs/DEPLOY.md](../../docs/DEPLOY.md)

@@ -31,7 +31,6 @@ from app.schemas.timesheet import (
     WorkItemTimesheet,
 )
 from app.services.azure import AzureService, get_work_item_icon_data_uri
-from app.services.iteration_service import IterationService
 from app.utils.project_id_normalizer import normalize_project_id, is_valid_uuid
 
 settings = get_settings()
@@ -173,19 +172,143 @@ class TimesheetService:
         # Fallback para o PAT padrão das variáveis de ambiente
         return settings.azure_devops_pat or self._token_fallback or ""
 
+    async def _get_iteration_path(
+        self, organization: str, project: str, iteration_id: str
+    ) -> str | None:
+        """
+        Busca o path de uma iteration pelo ID.
+        
+        Args:
+            organization: Nome da organização.
+            project: ID do projeto.
+            iteration_id: UUID da iteration.
+            
+        Returns:
+            Path da iteration ou None se não encontrado.
+        """
+        headers = self._get_headers_for_org(organization)
+        if not headers:
+            return None
+        
+        # Tentar buscar diretamente pelo ID primeiro
+        url = f"https://dev.azure.com/{organization}/{project}/_apis/wit/classificationnodes/iterations?$depth=10&api-version=7.1"
+        
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.get(url, headers=headers)
+            
+            if response.status_code != 200:
+                logger.warning(f"Erro ao buscar iterations: {response.status_code}")
+                return None
+            
+            data = response.json()
+            
+            # Função recursiva para buscar o path pelo ID
+            def find_iteration_path(node: dict, parent_path: str = "") -> str | None:
+                node_id = str(node.get("identifier", ""))
+                node_name = node.get("name", "")
+                current_path = f"{parent_path}\\{node_name}" if parent_path else node_name
+                
+                if node_id == iteration_id:
+                    return current_path
+                
+                for child in node.get("children", []):
+                    result = find_iteration_path(child, current_path)
+                    if result:
+                        return result
+                
+                return None
+            
+            return find_iteration_path(data)
+
+    async def _get_work_items_by_iteration_api(
+        self,
+        organization: str,
+        project: str,
+        iteration_id: str,
+    ) -> list[dict[str, Any]]:
+        """
+        Busca Work Items usando a API de iteration work items (mais performática).
+        
+        Esta é a abordagem preferida quando iteration_id é fornecido,
+        pois faz apenas 2 requests:
+        1. GET iteration work items (retorna IDs)
+        2. GET work items details (com os IDs)
+        
+        Args:
+            organization: Nome da organização.
+            project: ID do projeto.
+            iteration_id: UUID da iteration.
+            
+        Returns:
+            Lista de Work Items com detalhes.
+        """
+        headers = self._get_headers_for_org(organization)
+        if not headers:
+            logger.warning(f"Sem credenciais para {organization}")
+            return []
+
+        # 1. Buscar IDs dos work items da iteration
+        # GET https://dev.azure.com/{org}/{project}/_apis/work/teamsettings/iterations/{iterationId}/workitems
+        url = (
+            f"https://dev.azure.com/{organization}/{project}"
+            f"/_apis/work/teamsettings/iterations/{iteration_id}/workitems"
+            f"?api-version=7.2-preview.1"
+        )
+
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(url, headers=headers)
+
+            if response.status_code != 200:
+                logger.error(
+                    f"Erro ao buscar work items da iteration: {response.status_code} - {response.text[:500]}"
+                )
+                # Fallback para WIQL se a API falhar
+                return await self._get_work_items_simple(organization, project, None, None)
+
+            data = response.json()
+
+        # Extrair IDs únicos das relações
+        work_item_ids: set[int] = set()
+        relations = data.get("workItemRelations", [])
+
+        for relation in relations:
+            target = relation.get("target")
+            if target and "id" in target:
+                work_item_ids.add(target["id"])
+            source = relation.get("source")
+            if source and "id" in source:
+                work_item_ids.add(source["id"])
+
+        if not work_item_ids:
+            logger.debug(f"Nenhum work item encontrado na iteration {iteration_id}")
+            return []
+
+        logger.debug(f"Encontrados {len(work_item_ids)} work items na iteration {iteration_id}")
+
+        # 2. Buscar detalhes dos Work Items
+        return await self._get_work_items_details(
+            organization, project, list(work_item_ids), relations
+        )
+
     async def _get_work_items_hierarchy(
         self,
         organization: str,
         project: str,
         user_email: str | None = None,
+        iteration_id: str | None = None,
     ) -> list[dict[str, Any]]:
         """
-        Busca a hierarquia de Work Items do Azure DevOps usando WIQL recursivo.
+        Busca a hierarquia de Work Items do Azure DevOps.
+        
+        Estratégia híbrida para melhor performance:
+        - Se iteration_id fornecido: usa API de iteration work items (mais rápido)
+        - Se iteration_id não fornecido: usa WIQL (para buscar todos)
 
         Args:
             organization: Nome da organização.
             project: ID do projeto.
             user_email: Email do usuário para filtro.
+            iteration_id: ID da iteração (sprint) para filtrar.
 
         Returns:
             Lista de Work Items com hierarquia.
@@ -193,6 +316,16 @@ class TimesheetService:
         if not self._get_pat_for_org(organization):
             logger.warning(f"Token não disponível para buscar work items da organização {organization}")
             return []
+
+        # ESTRATÉGIA HÍBRIDA: Se iteration_id fornecido, usar API direta (mais rápido)
+        if iteration_id:
+            logger.debug(f"Usando API de iteration work items para {iteration_id}")
+            return await self._get_work_items_by_iteration_api(
+                organization, project, iteration_id
+            )
+
+        # Sem iteration_id: usar WIQL para buscar todos os work items
+        logger.debug("Sem iteration_id, usando WIQL para buscar todos work items")
 
         # WIQL para buscar hierarquia (Epic -> Feature -> Story -> Task/Bug)
         wiql_url = (
@@ -267,9 +400,11 @@ class TimesheetService:
         organization: str,
         project: str,
         user_email: str | None = None,
+        _unused: str | None = None,  # Mantido para compatibilidade, mas não usado
     ) -> list[dict[str, Any]]:
         """
         Busca Work Items usando query simples (fallback).
+        Usado apenas quando não há iteration_id selecionado.
         """
         wiql_url = (
             f"https://dev.azure.com/{organization}/{project}"
@@ -360,18 +495,25 @@ class TimesheetService:
 
                 items_data = response.json().get("value", [])
 
-                # Buscar ícones em paralelo
-                icon_tasks = []
+                # Buscar ícones apenas para tipos únicos (cache por tipo)
                 pat_for_org = self._get_pat_for_org(organization)
+                unique_types = set()
                 for item in items_data:
-                    work_item_type = item.get("fields", {}).get(
-                        "System.WorkItemType", ""
-                    )
-                    icon_tasks.append(
-                        get_work_item_icon_data_uri(organization, pat_for_org or "", work_item_type)
-                    )
-
-                icon_urls = await asyncio.gather(*icon_tasks)
+                    work_item_type = item.get("fields", {}).get("System.WorkItemType", "")
+                    if work_item_type:
+                        unique_types.add(work_item_type)
+                
+                # Buscar ícones apenas para tipos únicos (máximo ~6 tipos)
+                icon_cache: dict[str, str] = {}
+                if unique_types:
+                    icon_tasks = [
+                        get_work_item_icon_data_uri(organization, pat_for_org or "", wt)
+                        for wt in unique_types
+                    ]
+                    icon_results = await asyncio.gather(*icon_tasks)
+                    icon_cache = dict(zip(unique_types, icon_results))
+                
+                logger.debug(f"Ícones buscados: {len(unique_types)} tipos únicos para {len(items_data)} work items")
 
                 for idx, item in enumerate(items_data):
                     fields_data = item.get("fields", {})
@@ -393,7 +535,7 @@ class TimesheetService:
                             "state_category": state_category,
                             "assigned_to": assigned_to_name,
                             "parent_id": fields_data.get("System.Parent"),
-                            "icon_url": icon_urls[idx],
+                            "icon_url": icon_cache.get(fields_data.get("System.WorkItemType", ""), ""),
                             "original_estimate": fields_data.get(
                                 "Microsoft.VSTS.Scheduling.OriginalEstimate"
                             ),
@@ -584,7 +726,6 @@ class TimesheetService:
             week_start: Início da semana (segunda). Se None, usa semana atual.
             user_email: Email do usuário para filtro.
             user_id: ID do usuário para filtrar apontamentos.
-            iteration_id: ID da iteration (sprint) para filtrar work items.
 
         Returns:
             TimesheetResponse com a hierarquia e totais.
@@ -593,33 +734,10 @@ class TimesheetService:
         week_start_date, week_end_date, week_dates = get_week_dates(week_start)
         today = date.today()
 
-        # Se iteration_id fornecido, buscar IDs dos work items da iteration
-        iteration_work_item_ids: set[int] | None = None
-        if iteration_id:
-            iteration_service = IterationService(self.db, token=self._token_fallback)
-            iteration_work_items = await iteration_service.get_iteration_work_items(
-                organization=organization,
-                project=project,
-                iteration_id=iteration_id,
-            )
-            if iteration_work_items.work_item_ids:
-                iteration_work_item_ids = set(iteration_work_items.work_item_ids)
-                logger.info(
-                    f"Filtrando por iteration {iteration_id}: {len(iteration_work_item_ids)} work items"
-                )
-
         # Buscar Work Items do Azure DevOps
         work_items_data = await self._get_work_items_hierarchy(
-            organization, project, user_email
+            organization, project, user_email, iteration_id
         )
-
-        # Filtrar work items pela iteration, se especificada
-        if iteration_work_item_ids is not None:
-            work_items_data = [
-                wi for wi in work_items_data
-                if wi["id"] in iteration_work_item_ids
-            ]
-            logger.info(f"Work items após filtro de iteration: {len(work_items_data)}")
 
         # Buscar apontamentos da semana
         apontamentos_map = self._get_apontamentos_semana(

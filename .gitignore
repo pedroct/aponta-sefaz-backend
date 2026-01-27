@@ -4,9 +4,14 @@
 .env.backup
 .env.production
 .venv/
+.venv_linux/
 venv/
 __pycache__/
 *.pyc
+
+# Deploy - arquivos .env com secrets (gerenciados via GitHub Secrets)
+deploy/**/.env
+!deploy/**/env.template
 
 # IDE
 .vscode/

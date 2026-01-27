@@ -6,7 +6,7 @@ import uuid
 import base64
 import httpx
 from app.models.projeto import Projeto
-from app.services.azure import AzureService
+from app.models.organization_pat import OrganizationPat
 from app.auth import AzureDevOpsUser
 from app.config import get_settings
 
@@ -25,8 +25,8 @@ class ProjetoService:
         """
         self.db = db
         self.user = user
-        # Reutiliza o token do usuário para instanciar o serviço Azure
-        self.azure_service = AzureService(token=user.token)
+        # Nota: AzureService não é mais necessário aqui pois sync_projects
+        # usa os PATs do banco de dados diretamente via httpx
 
     async def _fetch_projects_from_org(self, org_name: str, pat: str) -> list[dict]:
         """
@@ -62,12 +62,46 @@ class ProjetoService:
     async def sync_projects(self) -> dict:
         """
         Busca projetos de TODAS as organizações Azure DevOps configuradas e atualiza o banco local.
+        Inclui organizações das variáveis de ambiente E do banco de dados (tabela organization_pats).
         Realiza upsert baseado no external_id.
         """
         logger.info(f"Iniciando sincronização de projetos para usuário: {self.user.display_name}")
 
-        # Obter todas as organizações configuradas
-        organizations = settings.get_all_organizations()
+        # 1. Obter organizações das variáveis de ambiente
+        env_organizations = settings.get_all_organizations()
+        
+        # 2. Obter organizações ativas do banco de dados
+        db_org_pats = self.db.query(OrganizationPat).filter(
+            OrganizationPat.ativo == True
+        ).all()
+        
+        # 3. Combinar as duas fontes (evitando duplicatas)
+        organizations = []
+        org_names_seen = set()
+        
+        # Primeiro adiciona do banco de dados (prioridade)
+        for org_pat in db_org_pats:
+            org_name = org_pat.organization_name
+            if org_name.lower() not in org_names_seen:
+                try:
+                    pat = org_pat.get_pat()  # Descriptografa o PAT
+                    organizations.append({
+                        "name": org_name,
+                        "pat": pat,
+                        "url": org_pat.organization_url,
+                        "source": "database"
+                    })
+                    org_names_seen.add(org_name.lower())
+                except Exception as e:
+                    logger.error(f"Erro ao descriptografar PAT de {org_name}: {e}")
+        
+        # Depois adiciona das variáveis de ambiente (se não existir no banco)
+        for org in env_organizations:
+            org_name = org["name"]
+            if org_name.lower() not in org_names_seen:
+                org["source"] = "environment"
+                organizations.append(org)
+                org_names_seen.add(org_name.lower())
         
         if not organizations:
             logger.warning("Nenhuma organização configurada para sincronização")
@@ -88,15 +122,16 @@ class ProjetoService:
         for org in organizations:
             org_name = org["name"]
             pat = org["pat"]
+            source = org.get("source", "unknown")
             
             try:
                 projects = await self._fetch_projects_from_org(org_name, pat)
-                logger.info(f"Recebidos {len(projects)} projetos de {org_name}")
+                logger.info(f"Recebidos {len(projects)} projetos de {org_name} (fonte: {source})")
                 all_projects.extend(projects)
-                org_results.append({"organization": org_name, "count": len(projects), "status": "success"})
+                org_results.append({"organization": org_name, "count": len(projects), "status": "success", "source": source})
             except Exception as e:
                 logger.error(f"Erro ao buscar projetos de {org_name}: {e}")
-                org_results.append({"organization": org_name, "count": 0, "status": "error", "error": str(e)})
+                org_results.append({"organization": org_name, "count": 0, "status": "error", "error": str(e), "source": source})
 
         logger.info(f"Total de {len(all_projects)} projetos recebidos de todas as organizações")
 

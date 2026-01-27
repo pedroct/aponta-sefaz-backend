@@ -145,6 +145,8 @@ class Settings(BaseSettings):
         # Adiciona origens conhecidas do Azure DevOps
         azure_devops_origins = [
             "https://dev.azure.com",
+            "https://dev.azure.com/sefaz-ce-diligencia",
+            "https://dev.azure.com/sefaz-ce-siscoex2",
             "https://sefaz-ceara.gallerycdn.vsassets.io",
             "https://sefaz-ceara-lab.gallerycdn.vsassets.io",
             "https://vsassets.io",

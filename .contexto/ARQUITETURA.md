@@ -1,6 +1,6 @@
 # Arquitetura do Sistema Aponta
 
-**Última atualização:** 21/01/2026
+**Ultima atualizacao:** 26/01/2026
 
 ---
 
@@ -204,3 +204,55 @@ app/
 - Nginx (proxy reverso + SSL)
 - PostgreSQL 15
 - VPS Hostinger
+- GitHub Actions (CI/CD)
+
+---
+
+## CI/CD Pipeline
+
+O deploy e 100% automatizado via GitHub Actions. **NAO faca deploy manual.**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    GitHub Repository                         │
+│  ┌─────────┐ PR  ┌─────────┐    ┌──────────────────────────┐│
+│  │ develop │────>│  main   │    │ GitHub Secrets           ││
+│  └────┬────┘     └────┬────┘    │ ├─ staging environment   ││
+│       │               │         │ └─ production environment││
+└───────┼───────────────┼─────────┴──────────────────────────┘│
+        │               │                                      │
+   Auto Deploy     Auto Deploy                                 │
+   (staging)       (production)                                │
+        │               │                                      │
+        v               v                                      │
+┌─────────────────────────────────────────────────────────────┐
+│                   VPS 92.112.178.252                         │
+│  /home/ubuntu/aponta-sefaz/                                  │
+│  ├── shared/     (nginx + postgres)                         │
+│  ├── staging/    (.env gerado via GitHub Secrets)           │
+│  └── production/ (.env gerado via GitHub Secrets)           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Workflows
+
+| Workflow | Trigger | Ambiente |
+|----------|---------|----------|
+| `deploy-staging.yml` | Push em `develop` | Staging |
+| `deploy-production.yml` | Push em `main` | Producao |
+| `rollback.yml` | Manual | Ambos |
+
+### Secrets
+
+Os secrets sao gerenciados em **GitHub > Settings > Secrets and variables > Actions**.
+
+| Secret | Descricao |
+|--------|-----------|
+| `VPS_HOST` | IP do servidor |
+| `VPS_USER` | Usuario SSH |
+| `VPS_SSH_PRIVATE_KEY` | Chave SSH |
+| `DATABASE_PASSWORD` | Senha PostgreSQL (por environment) |
+| `AZURE_DEVOPS_PAT` | PAT Azure DevOps (por environment) |
+| `AZURE_EXTENSION_SECRET` | Secret da extensao (por environment) |
+
+> **Documentacao completa:** [docs/DEPLOY.md](../docs/DEPLOY.md)
