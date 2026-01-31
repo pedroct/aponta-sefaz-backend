@@ -24,7 +24,7 @@ Backend FastAPI para extensão Azure DevOps, otimizado para deploy em VPS Hostin
 
 ---
 
-## 🎯 Sobre o Projeto (a ajustar)
+## 🎯 Sobre o Projeto (a ajustar )
 
 API Aponta é um backend robusto desenvolvido em FastAPI para gerenciar atividades e projetos integrados com Azure DevOps. Projetado para alta disponibilidade e segurança em ambiente de produção.
 
